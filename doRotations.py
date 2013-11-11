@@ -1,28 +1,23 @@
 import getopt, sys
+import math, random
 import subprocess
 import os
 
 def main(argv):
   try:
-    opts, args = getopt.getopt(argv, "hf:x:y:z:", ["help", "filename="])
+    opts, args = getopt.getopt(argv, "hf:n:", ["help", "filename="])
   except getopt.GetoptError:
     usage()
     sys.exit(2)
 
-  x = 90
-  y = 90
-  z = 90
   fname = ""
+  n = 100
 
   for opt, arg in opts:
-    if opt == "-x":
-      x = arg
-    if opt == "-y":
-      y = arg
-    if opt == "-z":
-      z = arg
     if opt in ("-f", "--filename="):
       fname = arg
+    if opt in ("-n"):
+      n = int(arg)
     if opt in ("-h", "--help"):
       usage()
       sys.exit(0)
@@ -31,13 +26,37 @@ def main(argv):
     usage()
     sys.exit(0)
 
-  for xVal in range(0, 360, x):
-    for yVal in range(0, 360, y):
-      for zVal in range(0, 360, z):
+  ranges = getRanges(n)
+
+  for xVal in ranges['x']:
+    for yVal in ranges['y']:
+      for zVal in ranges['z']:
         doRotation(xVal, yVal, zVal, fname)
 
+def getRanges(n):
+  # sphere point picking comes from mathworld.wolfram.com
+  ret = { 'x': [], 'y': [], 'z': []}
+  for i in range(0, n):
+    x_1 = random.random()*2 - 1;
+    x_2 = random.random()*2 - 1;
+
+    if x_1*x_1 + x_2*x_2 >= 1:
+      continue
+
+    ex = 2*x_1*math.sqrt(1 - x_1*x_1 - x_2*x_2)
+    why = 2*x_2*math.sqrt(1 - x_1*x_1 - x_2*x_2)
+    zee = 1-2*(x_1*x_1 + x_2*x_2)
+
+    ret['x'].append(ex)
+    ret['y'].append(why)
+    ret['z'].append(zee)
+  return ret
 
 def doRotation(x, y, z, fname):
+  x = x*180
+  y = y*180
+  z = z*180
+
   scadFile = createOpenSCADFile(x, y, z, fname)
   success = runOpenSCADFile(x, y, z, fname, scadFile)
   cleanUpScadFile(scadFile)
@@ -66,17 +85,11 @@ def usage():
   print """
   Usage:
 
-  doRotations.py -f filename [-x stepSizeX -y stepSizeY -z stepSizeZ]
-
-  where the stepSize variables describe the increase to make
-  at each step from 0 to 360.  (i.e. stepSize 90 => 0, 90, 180, 270)
-
-  default for these args is 90
-
-  if stepSize does not divide 360, we get as close as possible without
-  going over 360.
+  doRotations.py -f filename [-n numpoints]
 
   f is the file name you wish to process using this script
+
+  n is the number of points on the sphere you wish to sample, default 100
 """
 
 if __name__ == "__main__":
