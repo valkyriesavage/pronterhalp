@@ -1,4 +1,4 @@
-import getopt, sys
+import getopt, sys, shutil
 import math, random
 import subprocess
 import os
@@ -28,10 +28,11 @@ def main(argv):
 
   ranges = getRanges(n)
 
-  for xVal in ranges['x']:
-    for yVal in ranges['y']:
-      for zVal in ranges['z']:
-        doRotation(xVal, yVal, zVal, fname)
+  for idx in range(len(ranges['x'])):
+    xVal = ranges['x'][idx]
+    yVal = ranges['y'][idx]
+    zVal = ranges['z'][idx]
+    doRotation(xVal, yVal, zVal, fname)
 
 def getRanges(n):
   # sphere point picking comes from mathworld.wolfram.com
@@ -63,8 +64,12 @@ def doRotation(x, y, z, fname):
   return
 
 def createOpenSCADFile(x, y, z, fname):
-  print "creating scad file for x {0} y {1} z {2}".format(x, y, z)
+  filesDir = fname.split('.')[0] + "-files"
+  if not os.path.exists(filesDir):
+    os.mkdir(filesDir)
+  shutil.copy(fname, os.path.join(filesDir, fname))
   scadFile = "x{0}y{1}z{2}.scad".format(x, y, z)
+  scadFile = os.path.join(filesDir, scadFile)
   fileText = 'rotate([{0},{1},{2}]) import("{3}");'.format(x, y, z, fname)
   f = open(scadFile, 'w+')
   f.write(fileText)
@@ -72,9 +77,9 @@ def createOpenSCADFile(x, y, z, fname):
   return scadFile
 
 def runOpenSCADFile(x, y, z, fname, scadFile):
-  print "running scad file " + scadFile
   openSCAD = "/Applications/OpenSCAD.app/Contents/MacOS/OpenSCAD"
-  outFile = "x{0}y{1}z{2}-{3}.stl".format(x,y,z,fname)
+  outFile = "x{0}y{1}z{2}-{3}".format(x,y,z,fname)
+  outFile = os.path.join(os.path.dirname(scadFile), outFile)
   err = subprocess.call([openSCAD, "-o", outFile, scadFile])
   return
 
