@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <title>stl viewer</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        <link rel="stylesheet" type="text/css" href="css/NewHistogram.css">
+        <link rel="stylesheet" type="text/css" href="css/3DModel.css">
+        <script src="js/three.js"></script>
+        <script src="js/stats.js"></script>
+        <script src="js/detector.js"></script>
+        <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+        <!--<script src="js/histogram.js"></script>-->
+        <script src="js/NewHistogram.js"></script>
+        <!--<script src="js/OrbitControls.js"></script>-->
+        <!--<script src="js/controls.js"></script>-->
+        <script src="js/TrackballControls.js"></script>
+        <script src="js/sphericalHeatMap.js"></script>
+        <script src="data/wizzard.json"></script>
+    </head>
+    <body>
+        <!--<script src="js/barchart.js"></script>-->
+        <script>
+            // SphericalHeatMap #1
+            var s1 = new SphericalHeatMap(window.innerWidth/3, window.innerHeight/3);
+            var sphere = s1.addToBody();
+
+            // SpericalHeatMap #2
+            // var s2 = new SphericalHeatMap(window.innerWidth/3, window.innerHeight/3);
+            // s2.addToBody();
+
+            // // SphericalHeatMap #3
+            // var s3 = new SphericalHeatMap(window.innerWidth/3, window.innerHeight/3);
+            // s3.addToBody();
+
+            // Histogram #1
+            // width = window.innerWidth/2,
+            // height = window.innerHeight/2;
+            // var h1 = new NewHistogram(width, height, "data/barchart.tsv");
+            // h1.addToBody();
+
+            // // Histogram #2
+            // var h2 = new NewHistogram(width, height);
+            // h2.addToBody();
+
+            // // // Histogram #3
+            var h3 = new NewHistogram(width, height);
+            h3.addToBody();
+
+        </script>
+        <!-- 3D Model-->
+        <script src="js/3DModel.js"></script>
+
+    </body>
+</html>
