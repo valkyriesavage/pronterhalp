@@ -53,12 +53,14 @@ def getFilenames(base):
   ret = []
   baseFileName = base.split('.')[0] + "_raft.txt"
   for fname in os.listdir(filesDir(base)):
-    if fname.endswith('.txt') and not fname.startswith(baseFileName):
+    if fname.endswith('_support.txt') and not fname.startswith(baseFileName):
       ret.append(os.path.join(filesDir(base), fname))
   return ret
 
 def getRotation(fname, basefname):
   fname = fname.split('/')[1]
+  if fname.split('_')[0] == basefname.split('.')[0]:
+    return (0,0,0)
   x = fname.split('x')[1].split('y')[0]
   y = fname.split('y')[1].split('z')[0]
   z = fname.split('z')[1]
@@ -73,7 +75,10 @@ def calculateStatistics(fname, baseStats):
   printTime = 0
   cleanTime = 0
 
-  with open(fname) as f:
+  supportArea = 0
+  avgAngle = 0
+
+  with open(fname.replace("_support", "_raft")) as f:
     for line in f:
       if line.startswith("Build time is "):
         hms = line.split("Build time is ")[1]
@@ -84,6 +89,20 @@ def calculateStatistics(fname, baseStats):
       if line.startswith("Mass extruded is "):
         material = float(line.split("Mass extruded is ")[1].split(" ")[0])
         material = material - baseStats[MATERIAL]
+  with open(fname) as f:
+    for line in f:
+      if line.startswith("*&* "):
+        line = line.split("*&* ")[1]
+        if "units^2" in line:
+          supportArea = float(line.split("units^2")[0])
+        if "max angle" in line:
+          maxAngle = float(line.split("max angle")[0])
+        if "min angle" in line:
+          minAngle = float(line.split("min angle")[0])
+        if "average angle" in line:
+          avgAngle = float(line.split("average angle")[0])
+
+  cleanTime = supportArea*avgAngle
 
   return (material, printTime, cleanTime)
 
