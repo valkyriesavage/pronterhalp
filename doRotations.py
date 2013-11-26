@@ -51,6 +51,11 @@ def getRanges(n):
     ret['x'].append(ex)
     ret['y'].append(why)
     ret['z'].append(zee)
+
+  ret['x'].extend([0,.5,1,1.5]*4)
+  ret['y'].extend([0]*4+[.5]*4+[1]*4+[1.5]*4)
+  ret['z'].extend([0]*16)
+
   return ret
 
 def doRotation(x, y, z, fname):
