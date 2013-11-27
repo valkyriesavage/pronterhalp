@@ -44,17 +44,17 @@ def getRanges(n):
     if x_1*x_1 + x_2*x_2 >= 1:
       continue
 
-    ex = 2*x_1*math.sqrt(1 - x_1*x_1 - x_2*x_2)
-    why = 2*x_2*math.sqrt(1 - x_1*x_1 - x_2*x_2)
-    zee = 1-2*(x_1*x_1 + x_2*x_2)
+    ex = x_1
+    why = x_2
+    zee = 0
 
     ret['x'].append(ex)
     ret['y'].append(why)
     ret['z'].append(zee)
 
-  ret['x'].extend([0,.5,1,1.5]*4)
-  ret['y'].extend([0]*4+[.5]*4+[1]*4+[1.5]*4)
-  ret['z'].extend([0]*16)
+  ret['x'].extend([-1,-.5,0,.5,1]*5)
+  ret['y'].extend([-1]*5+[-.5]*5+[0]*5+[.5]*5+[1]*5)
+  ret['z'].extend([0]*25)
 
   return ret
 
