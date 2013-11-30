@@ -102,7 +102,7 @@ def calculateStatistics(fname, baseStats):
         if "average angle" in line:
           avgAngle = float(line.split("average angle")[0])
 
-  cleanTime = supportArea*avgAngle
+  cleanTime = supportArea*(1/avgAngle)
 
   return (material, printTime, cleanTime)
 
