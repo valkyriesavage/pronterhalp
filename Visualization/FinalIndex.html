@@ -14,10 +14,11 @@
 		<script src="js/detector.js"></script>
 		<script src="js/NewHistogram.js"></script>
 		<script src="js/heatmap.js"></script>
+		<script src="js/OrbitControls.js"></script>
 	</head>
 	<body>
 		<script>
-			// // Histogram #1
+			// Histogram #1
             width = window.innerWidth/5;
             height = window.innerHeight/5;
             var h1 = new NewHistogram(width, height, "data/barchart.tsv");
@@ -34,18 +35,19 @@
             // HeatMap #1
             width = window.innerWidth/5;
             height = window.innerHeight/5;
-            var hm1 = new HeatMap(width, height);
+            var hm1 = new HeatMap(width, height, "data/heatmap.json");
             hm1.addToBody();
 
             // HeatMap #2
-            var hm2 = new HeatMap(width, height);
+            var hm2 = new HeatMap(width, height, "data/heatmap.json");
             hm2.addToBody();
 
             // HeatMap #3
-            var hm3 = new HeatMap(width, height);
+            var hm3 = new HeatMap(width, height, "data/heatmap.json");
             hm3.addToBody();
             
 
 		</script>
+		 <!--<script src="js/3DModel.js"></script>-->
 	</body>
 </html>

@@ -1,16 +1,17 @@
 /**
 HeatMap Class
 */
-function HeatMap(width, height) {
+function HeatMap(width, height, dataFile) {
   this.width = width;
   this.height = height;
+  this.dataFile = dataFile;
 }
 
 HeatMap.prototype.addToBody = function() {  
 var width = this.width,
     height = this.height;
 
-d3.json("data/heatmap.json", function(error, heatmap) {
+d3.json(this.dataFile, function(error, heatmap) {
   var dx = heatmap[0].length,
       dy = heatmap.length;
 
@@ -41,20 +42,22 @@ d3.json("data/heatmap.json", function(error, heatmap) {
       .orient("right");
 
   d3.select("body").append("canvas")
+  	  .attr("class", "heatmap")
       .attr("width", dx)
       .attr("height", dy)
       .style("width", width + "px")
       .style("height", height + "px")
       .call(drawImage)
       .on("mousedown", function(){
-    	console.log("Hello");
-    	console.log(this);
+    	// console.log("Hello");
+    	// console.log(this);
     	console.log("Absolute Position of Canvas Element: " + this.offsetLeft + ", " + this.offsetTop)
     	console.log("Absolute Click Position: " + d3.event.clientX + ", " + d3.event.clientY );
     	var dX = (d3.event.clientX - this.offsetLeft);
     	var dY = (d3.event.clientY - this.offsetTop);
     	console.log("Relative Click Position to Canvas: " + dX + "," + dY);
   	  });
+
 
   // var svg = d3.select("body").append("svg")
   //     .attr("width", width)

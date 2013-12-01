@@ -246,7 +246,9 @@ renderer.setSize( window.innerWidth/2, window.innerHeight/2 );
 document.body.appendChild( renderer.domElement );
 
 // DERRICK Camera:
-controls = new THREE.TrackballControls( camera, renderer.domElement );
+// controls = new THREE.TrackballControls( camera, renderer.domElement );
+controls = new THREE.OrbitControls( camera, renderer.domElement );
+
 
 // stats = new Stats();
 // stats.domElement.style.position = 'absolute';
@@ -268,12 +270,12 @@ controls.update();
 function render() {
 
 // mesh.rotation.x += 0.01;
-if (mesh) {
-    console.log("3D Model Update")
-    mesh.rotation.z += 0.02;
-    mesh.rotation.y += 0.02;
-    mesh.rotation.x += 0.02;
-}
+// if (mesh) {
+//     console.log("3D Model Update")
+//     mesh.rotation.z += 0.02;
+//     mesh.rotation.y += 0.02;
+//     mesh.rotation.x += 0.02;
+// }
 // mesh.rotation.y += 0.01;
 // mesh.rotation.y = 3.141592645;
 //light1.position.z -= 1;
