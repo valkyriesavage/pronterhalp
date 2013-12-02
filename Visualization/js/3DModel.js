@@ -272,13 +272,13 @@ function render() {
 // mesh.rotation.x += 0.01;
 // if (mesh) {
 //     console.log("3D Model Update")
-//     mesh.rotation.z += 0.02;
-//     mesh.rotation.y += 0.02;
-//     mesh.rotation.x += 0.02;
+//     // mesh.rotation.z += 0.02;
+//     mesh.rotation.y = (yRotation/ 180) * 3.14;
+//     mesh.rotation.x = (xRotation/ 180) * 3.14;
 // }
 // mesh.rotation.y += 0.01;
 // mesh.rotation.y = 3.141592645;
-//light1.position.z -= 1;
+// light1.position.z -= 1;
 
 renderer.render( scene, camera );
 }
