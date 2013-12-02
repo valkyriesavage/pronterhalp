@@ -59,8 +59,9 @@ STLModel.prototype.addToBody = function() {
 	    // don't need, it should always be zero.
 	    offset += 2;   
 
-	    // Create a new face for from the vertices and the normal             
-	    geo.faces.push(new THREE.Face3(i*3, i*3+1, i*3+2, normal));
+	    // Create a new face for from the vertices and the normal 
+	    var newFace = new THREE.Face3(i*3, i*3+1, i*3+2, normal);            
+	    geo.faces.push(newFace);
 	}
 
 	// The binary STL I'm testing with seems to have all
@@ -86,6 +87,13 @@ STLModel.prototype.addToBody = function() {
 
 	stl = null;
 	};  
+
+	var minX = 1000000;
+  	var minY = 1000000;
+  	var minZ = 1000000;
+  	var maxX = -1000000;
+  	var maxY = -1000000;
+  	var maxZ = -1000000;
 
 	var parseStl = function(stl) {
 	var state = '';
@@ -137,13 +145,36 @@ STLModel.prototype.addToBody = function() {
 	            break;
 	        case 'vertex': 
 	            if (parts[0] === 'vertex') {
+	            	// console.log("X:" + parseFloat(parts[1]) + " Y:" + parseFloat(parts[2]) + " Z:" + parseFloat(parts[3]));
+	                if (parseFloat(parts[1]) < minX) {
+	                	minX = parseFloat(parts[1]);
+	                }
+	                if (parseFloat(parts[1]) > maxX) {
+	                	maxX = parseFloat(parts[1]);
+	                }
+	                if (parseFloat(parts[2]) < minY) {
+	                	minY = parseFloat(parts[2]);
+	                }
+	                if (parseFloat(parts[2]) > maxY) {
+	                	maxY = parseFloat(parts[2]);
+	                }
+	                if (parseFloat(parts[3]) < minZ) {
+	                	minZ = parseFloat(parts[3]);
+	                }
+	                if (parseFloat(parts[3]) > maxZ) {
+	                	maxZ = parseFloat(parts[3]);
+	                }
 	                geo.vertices.push(new THREE.Vector3(
 	                    parseFloat(parts[1]),
 	                    parseFloat(parts[2]),
 	                    parseFloat(parts[3])
 	                ));
 	            } else if (parts[0] === 'endloop') {
-	                geo.faces.push( new THREE.Face3( vCount*3, vCount*3+1, vCount*3+2, new THREE.Vector3(normal[0], normal[1], normal[2]) ) );
+	            	// console.log("ADDING FACE");
+	            	var face = new THREE.Face3( vCount*3, vCount*3+1, vCount*3+2, new THREE.Vector3(normal[0], normal[1], normal[2]) );
+	            	// Valkyrie
+	            	face.color.setRGB( 0, 0, 0.8 * Math.random() + 0.2 );    
+	                geo.faces.push(face);
 	                vCount++;
 	                state = 'endloop';
 	            } else {
@@ -166,10 +197,11 @@ STLModel.prototype.addToBody = function() {
 	                //mesh = new THREE.Mesh( geo, new THREE.MeshNormalMaterial({overdraw:true}));
 	                mesh = new THREE.Mesh( 
 	                    geo, 
-	                    new THREE.MeshLambertMaterial({
-	                        overdraw:true,
-	                        color: 0xa8a8a8,
-	                        shading: THREE.FlatShading
+	                    new THREE.MeshBasicMaterial({
+	                        // overdraw:true,
+	                        color: 0xffffff,
+	                        // shading: THREE.FlatShading,
+	                        vertexColors: THREE.FaceColors
 	                    }
 	                ));
 	                scene.add(mesh);
@@ -195,6 +227,7 @@ STLModel.prototype.addToBody = function() {
 	            break;
 	    }
 	}
+	console.log("MinX: " + minX + " MaxX: " + maxX + " MinY: " + minY + " MaxY: " + maxY + " MinZ: " + minZ + " MaxZ: " + maxZ);
 	// geo.position.set(0, 0, 0);
 	};
 
@@ -208,8 +241,8 @@ STLModel.prototype.addToBody = function() {
 
 	scene = new THREE.Scene();
 
-	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
-	camera.position.z = 70;
+	camera = new THREE.PerspectiveCamera( 75, this.width / this.height, 1, 1000 );
+	camera.position.z = 75;
 	camera.position.y = 0;
 	camera.position.x = 0;
 	scene.add( camera );
@@ -225,10 +258,10 @@ STLModel.prototype.addToBody = function() {
 	xhr.onreadystatechange = function () {
 	    if ( xhr.readyState == 4 ) {
 	        if ( xhr.status == 200 || xhr.status == 0 ) {
-	            var rep = xhr.response; // || xhr.mozResponseArrayBuffer;
-	            console.log(rep);
-	            parseStlBinary(rep);
-	            //parseStl(xhr.responseText);
+	            // var rep = xhr.response; // || xhr.mozResponseArrayBuffer;
+	            // console.log(rep);
+	            // parseStlBinary(rep);
+	            parseStl(xhr.responseText);
 	            mesh.rotation.x = 5;
 	            mesh.rotation.z = .25;
 	            console.log('done parsing');
@@ -239,11 +272,12 @@ STLModel.prototype.addToBody = function() {
 	    console.log(e);
 	}
 
-	xhr.open( "GET", 'stls/Octocat-v1.stl', true );
-	xhr.responseType = "arraybuffer";
-	//xhr.setRequestHeader("Accept","text/plain");
-	//xhr.setRequestHeader("Content-Type","text/plain");
-	//xhr.setRequestHeader('charset', 'x-user-defined');
+	// xhr.open( "GET", 'stls/Octocat-v1.stl', true );
+	xhr.open( "GET", 'stls/wizzard.stl', true );
+	// xhr.responseType = "arraybuffer";
+	xhr.setRequestHeader("Accept","text/plain");
+	xhr.setRequestHeader("Content-Type","text/plain");
+	xhr.setRequestHeader('charset', 'x-user-defined');
 	xhr.send( null );
 
 	renderer = new THREE.WebGLRenderer(); //new THREE.CanvasRenderer();

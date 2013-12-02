@@ -201,10 +201,10 @@ function init() {
 
 scene = new THREE.Scene();
 
-camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
-camera.position.z = 70;
-camera.position.y = 0;
+camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 1000 );
 camera.position.x = 0;
+camera.position.y = 0;
+camera.position.z = 100;
 scene.add( camera );
 
 var directionalLight = new THREE.DirectionalLight( 0xffffff );
