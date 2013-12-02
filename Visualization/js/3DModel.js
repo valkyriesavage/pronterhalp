@@ -243,7 +243,7 @@ renderer = new THREE.WebGLRenderer(); //new THREE.CanvasRenderer();
 // renderer.setSize( window.innerWidth, window.innerHeight );
 renderer.setSize( window.innerWidth/2, window.innerHeight/2 );
 
-document.body.appendChild( renderer.domElement );
+document.getElementById("model").appendChild( renderer.domElement );
 
 // DERRICK Camera:
 // controls = new THREE.TrackballControls( camera, renderer.domElement );

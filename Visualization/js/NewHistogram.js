@@ -51,7 +51,7 @@ NewHistogram.prototype.addToBody = function() {
       .scale(x)
       .orient("bottom");
 
-  var svg = d3.select("body").append("svg")
+  var svg = d3.select("#histograms").append("svg")
       .attr("class", "histogram")
       .attr("width", width + margin.left + margin.right)
       .attr("height", height + margin.top + margin.bottom)
@@ -83,7 +83,7 @@ NewHistogram.prototype.addToBody = function() {
       .call(xAxis);
 
   // DERRICK TEST
-  this.highlightBar(0.6);
+  // this.highlightBar(0.6);
   // console.log(this.rects);
   // this.rects.filter(function(d) { return d.x < 0.5 }).style("fill", "green");
 }

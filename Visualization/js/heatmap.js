@@ -1,15 +1,29 @@
 /**
 HeatMap Class
 */
-function HeatMap(width, height, dataFile) {
+function HeatMap(width, height, dataFile, orientationCallback) {
   this.width = width;
   this.height = height;
   this.dataFile = dataFile;
+  this.callback = orientationCallback; // call back to call when updating orientation
+}
+
+HeatMap.prototype.pixelsToOrientation = function(pixelX, pixelY) {
+	var orientation = new Object();
+	console.log("Convert pixels to orientation");
+	orientation.xRotation = pixelX;
+	orientation.yRotation = pixelY;
+	return orientation;
 }
 
 HeatMap.prototype.addToBody = function() {  
 var width = this.width,
     height = this.height;
+
+// Add the canvas first
+var canvas = d3.select("#heatmaps").append("canvas");
+var pixelsToOrientation = this.pixelsToOrientation;
+var callback = this.callback;
 
 d3.json(this.dataFile, function(error, heatmap) {
   var dx = heatmap[0].length,
@@ -41,8 +55,7 @@ d3.json(this.dataFile, function(error, heatmap) {
       .scale(y)
       .orient("right");
 
-  d3.select("body").append("canvas")
-  	  .attr("class", "heatmap")
+  canvas.attr("class", "heatmap")
       .attr("width", dx)
       .attr("height", dy)
       .style("width", width + "px")
@@ -55,7 +68,9 @@ d3.json(this.dataFile, function(error, heatmap) {
     	console.log("Absolute Click Position: " + d3.event.clientX + ", " + d3.event.clientY );
     	var dX = (d3.event.clientX - this.offsetLeft);
     	var dY = (d3.event.clientY - this.offsetTop);
+    	var orientation = pixelsToOrientation(dX, dY);
     	console.log("Relative Click Position to Canvas: " + dX + "," + dY);
+    	callback(orientation.xRotation, orientation.yRotation);
   	  });
 
 
