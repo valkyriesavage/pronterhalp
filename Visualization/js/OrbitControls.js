@@ -181,7 +181,8 @@ THREE.OrbitControls = function ( object, domElement ) {
                 // restrict radius to be between desired limits
                 radius = Math.max( this.minDistance, Math.min( this.maxDistance, radius ) );
 
-                offset.x = radius * Math.sin( phi ) * Math.sin( theta );
+                console.log("Phi: " + phi + ", Theta: " + theta);
+ ;              offset.x = radius * Math.sin( phi ) * Math.sin( theta );
                 offset.y = radius * Math.cos( phi );
                 offset.z = radius * Math.sin( phi ) * Math.cos( theta );
 
@@ -270,8 +271,10 @@ THREE.OrbitControls = function ( object, domElement ) {
                         rotateEnd.set( event.clientX, event.clientY );
                         rotateDelta.subVectors( rotateEnd, rotateStart );
 
-                        scope.rotateLeft( 2 * Math.PI * rotateDelta.x / PIXELS_PER_ROUND * scope.userRotateSpeed );
-                        scope.rotateUp( 2 * Math.PI * rotateDelta.y / PIXELS_PER_ROUND * scope.userRotateSpeed );
+                        var leftRotation = 2 * Math.PI * rotateDelta.x / PIXELS_PER_ROUND * scope.userRotateSpeed ;
+                        var rightRotation = 2 * Math.PI * rotateDelta.y / PIXELS_PER_ROUND * scope.userRotateSpeed;
+                        scope.rotateLeft(leftRotation);
+                        scope.rotateUp(rightRotation);
 
                         rotateStart.copy( rotateEnd );
 

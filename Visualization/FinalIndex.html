@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>Pronterhalp</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+		</style>
+		<link rel="stylesheet" type="text/css" href="css/NewHistogram.css">
+            <link rel="stylesheet" type="text/css" href="css/3DModel.css">
+            <link rel="stylesheet" type="text/css" href="css/heatmap.css">
+            <script src="http://code.jquery.com/jquery-2.0.2.min.js"></script>
+		<script src="js/three.js"></script>
+		<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+		<script src="js/detector.js"></script>
+		<script src="js/NewHistogram.js"></script>
+		<script src="js/heatmap.js"></script>
+		<script src="js/OrbitControls.js"></script>
+            <script src="js/STLModel.js"></script>
+	</head>
+	<body>
+            <div id="stats" style="text-align: center; font-size: large">Statistics</div>
+		<div id="heatmaps"></div>
+		<div id="histograms"></div>
+            <div id="model"></div>
+
+		<script>
+            /**
+             * STLModel Allocation
+             */
+            var width = window.innerWidth/2;
+            var height = window.innerHeight/2; 
+            var m = new STLModel(width, height);
+		
+            /*
+		 * Histogram Allocation
+		 */
+		var histograms = new Array(); 
+		// Histogram #1
+            width = window.innerWidth/4;
+            height = window.innerHeight/4;
+            var h1 = new NewHistogram(width, height, "data/barchart.tsv");
+            histograms[0] = h1;
+
+            // Histogram #2
+            var h2 = new NewHistogram(width, height, "data/barchart.tsv");
+            histograms[1] = h2;
+
+
+            // Histogram #3
+            var h3 = new NewHistogram(width, height, "data/barchart.tsv");
+            histograms[2] = h3;
+
+            /*
+             * When called with the new orientation:
+             * 1) Goes through all thie histograms and highlights the associated bar
+             * 2) Goes through all the heatmaps and marks the associated point
+             * 3) Rotates the STL
+             */
+            var xRotation = 0, yRotation = 0;
+            $("#stats").text("xRotation: " + xRotation + " yRotation:" + yRotation);
+		function updateOrientation(orientX, orientY) {
+                  xRotation = orientX;
+                  yRotation = orientY;
+			console.log("Updating the orientation of the STL with xRotation: " + orientX + " yRotation: " + orientY);
+                  // Update the statistics bar 
+                  $("#stats").text("xRotation: " + xRotation + " yRotation:" + yRotation);
+                  // highlight bars
+                  var h;
+                  for (var i = 0; i < histograms.length; i++) {
+                        h = histograms[i];
+                        h.highlightBar(Math.random());
+                  }
+
+                  // rotate the STL
+                  // should already auto rotate by reading the actual
+
+		}
+
+            /*
+             * Heatmaps Allocation
+             */
+            var heatmaps = new Array();  
+            // HeatMap #1
+            width = window.innerWidth/4;
+            height = window.innerHeight/4;
+            var hm1 = new HeatMap(width, height, "data/heatmap.json", updateOrientation);
+            heatmaps[0] = hm1;
+
+            // HeatMap #2
+            var hm2 = new HeatMap(width, height, "data/heatmap.json", updateOrientation);
+            heatmaps[1] = hm2;
+
+            // HeatMap #3
+            var hm3 = new HeatMap(width, height, "data/heatmap.json", updateOrientation);
+            heatmaps[2] = hm3;
+
+            /*
+             * Heatmaps Add to Body
+             */
+            hm1.addToBody();
+            hm2.addToBody();
+            hm3.addToBody();
+
+            /**
+             * Histogram Add to Body
+             */
+            h1.addToBody();
+            h2.addToBody();
+            h3.addToBody();
+
+            /**
+             * Add STLModel to Body
+             */
+            m.addToBody(); 
+
+		</script>
+		<!--<script src="js/3DModel.js"></script>-->
+	</body>
+</html>

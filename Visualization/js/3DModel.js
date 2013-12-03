@@ -201,10 +201,10 @@ function init() {
 
 scene = new THREE.Scene();
 
-camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
-camera.position.z = 70;
-camera.position.y = 0;
+camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 1000 );
 camera.position.x = 0;
+camera.position.y = 0;
+camera.position.z = 100;
 scene.add( camera );
 
 var directionalLight = new THREE.DirectionalLight( 0xffffff );
@@ -243,10 +243,12 @@ renderer = new THREE.WebGLRenderer(); //new THREE.CanvasRenderer();
 // renderer.setSize( window.innerWidth, window.innerHeight );
 renderer.setSize( window.innerWidth/2, window.innerHeight/2 );
 
-document.body.appendChild( renderer.domElement );
+document.getElementById("model").appendChild( renderer.domElement );
 
 // DERRICK Camera:
-controls = new THREE.TrackballControls( camera, renderer.domElement );
+// controls = new THREE.TrackballControls( camera, renderer.domElement );
+controls = new THREE.OrbitControls( camera, renderer.domElement );
+
 
 // stats = new Stats();
 // stats.domElement.style.position = 'absolute';
@@ -268,15 +270,15 @@ controls.update();
 function render() {
 
 // mesh.rotation.x += 0.01;
-if (mesh) {
-    console.log("3D Model Update")
-    mesh.rotation.z += 0.02;
-    mesh.rotation.y += 0.02;
-    mesh.rotation.x += 0.02;
-}
+// if (mesh) {
+//     console.log("3D Model Update")
+//     // mesh.rotation.z += 0.02;
+//     mesh.rotation.y = (yRotation/ 180) * 3.14;
+//     mesh.rotation.x = (xRotation/ 180) * 3.14;
+// }
 // mesh.rotation.y += 0.01;
 // mesh.rotation.y = 3.141592645;
-//light1.position.z -= 1;
+// light1.position.z -= 1;
 
 renderer.render( scene, camera );
 }
