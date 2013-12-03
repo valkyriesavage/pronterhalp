@@ -9,7 +9,7 @@
 		<link rel="stylesheet" type="text/css" href="css/NewHistogram.css">
         <link rel="stylesheet" type="text/css" href="css/3DModel.css">
 		<script src="js/three.js"></script>
-		<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+		<script src="js/d3.v3.min.js" charset="utf-8"></script>
 		<script src="js/detector.js"></script>
 		<script src="js/NewHistogram.js"></script>
 	</head>
@@ -31,7 +31,6 @@
 
 			// Returns Sphere with position <x,y,z>
 			function makeSphereWithPosition(x,y,z,r) {
-				console.log("Radius: " + r);
 				// this material causes a mesh to use colors assigned to faces
 			    var faceColorMaterial = new THREE.MeshBasicMaterial( 
 			    { color: 0xffffff, vertexColors: THREE.FaceColors } );
@@ -41,7 +40,6 @@
 			    {
 			            UV = sphereGeometry.faceVertexUvs[0];
 			            face = sphereGeometry.faces[ i ];  
-			            // console.log("<" + face.normal.x + " " + face.normal.y + " " + face.normal.z+ ">");
 			            face.color.setRGB( 0, 0, 0.8 * Math.random() + 0.2 );    
 			            // face.color.setRGB( 0 , 0 , i/ sphereGeometry.faces.length );                
 			    }
@@ -94,8 +92,6 @@
 			var isLittleEndian = true;
 			var triangles = dv.getUint32(0, isLittleEndian); 
 
-			// console.log('arraybuffer length:  ' + stl.byteLength);
-			// console.log('number of triangles: ' + triangles);
 
 			var offset = 4;
 			for (var i = 0; i < triangles; i++) {
@@ -123,8 +119,8 @@
 			    // don't need, it should always be zero.
 			    offset += 2;   
 
-			    // Create a new face for from the vertices and the normal             
-			    geo.faces.push(new THREE.Face3(i*3, i*3+1, i*3+2, normal));
+			    // Create a new face for from the vertices and the normal
+                            geo.faces.push(new THREE.Face3(i*3, i*3+1, i*3+2, normal));
 			}
 
 			// The binary STL I'm testing with seems to have all
@@ -230,17 +226,19 @@
 				            break;
 				        case 'endfacet':
 				            if (parts[0] === 'endsolid') {
-				                //mesh = new THREE.Mesh( geo, new THREE.MeshNormalMaterial({overdraw:true}));
-				                mesh = new THREE.Mesh( 
-				                    geo, 
-				                    new THREE.MeshLambertMaterial({
-				                        overdraw:true,
-				                        color: 0xa8a8a8,
-				                        shading: THREE.FlatShading
-				                    }
-				                ));
-				                scene.add(mesh);
-				                done = true;
+                                              //mesh = new THREE.Mesh( geo, new THREE.MeshNormalMaterial({overdraw:true}));
+                                              mesh = new THREE.Mesh( 
+                                              geo, 
+                                              new THREE.MeshLambertMaterial({
+                                                overdraw:true,
+                                                // TODO: valkyrie
+                                                // Color the face red if it is going to be contacted by support material in the print
+                                                color: 0xFF0000,
+                                                shading: THREE.FlatShading
+                                              }
+                                              ));
+                                              scene.add(mesh);
+                                              done = true;
 				            } else if (parts[0] === 'facet' && parts[1] === 'normal') {
 				                normal = [
 				                    parseFloat(parts[2]), 
@@ -276,10 +274,8 @@
 			    if ( xhr.readyState == 4 ) {
 			        if ( xhr.status == 200 || xhr.status == 0 ) {
 			            var rep = xhr.response; // || xhr.mozResponseArrayBuffer;
-			            // console.log(rep);
 			            // parseStlBinary(rep);
 			            parseStl(xhr.responseText);
-			            console.log('done parsing');
 			        }
 			    }
 			}
@@ -302,7 +298,6 @@
 
 			function animate() 
 			{
-				// console.log("Animate");
 			    requestAnimationFrame( animate );
 			    render();                
 			    // update();
@@ -313,23 +308,19 @@
 
 
 			function moveSpheres(xDelta, yDelta) {
-				console.log("<" + xDelta + "," +  yDelta + ">");
 				for (var i = 0; i < spheres.length; i++) {
 					var s = spheres[i];
 					s.rotation.x += yDelta/ SCREEN_WIDTH;
 					s.rotation.y += xDelta/ SCREEN_HEIGHT;
-					console.log(s.rotation.x + " " + s.rotation.y)
 				}
 			}
 
 			function mousedown(event) {
 				// Only accept it if it is within 
-				console.log("mousedown");
 				renderer.domElement.addEventListener('mousemove', mousemove, false);
 			}
 
 			function mouseup(event) {
-				console.log("mouseup");
 				renderer.domElement.removeEventListener('mousemove', mousemove, false);
 			}
 
@@ -344,7 +335,6 @@
 				moveSpheres(xDelta, yDelta);
 				prevX = event.clientX;
 				prevY = event.clientY;
-				console.log("mousemove");
 			}
 
 
