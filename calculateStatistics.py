@@ -2,6 +2,7 @@ import getopt, sys
 import os
 import shutil
 import subprocess
+import json
 
 MATERIAL = 0
 PRINTTIME = 1
@@ -40,7 +41,7 @@ def main(argv):
       'material': material,
       'printTime': printTime,
       'cleanTime': cleanTime})
-  print allStats
+  print json.dumps(allStats);
 
 def filesDir(fname):
   return fname.split('.')[0] + "-files"
@@ -102,6 +103,8 @@ def calculateStatistics(fname, baseStats):
         if "average angle" in line:
           avgAngle = float(line.split("average angle")[0])
 
+  if avgAngle is 0:
+    avgAngle = .000001
   cleanTime = supportArea*(1/avgAngle)
 
   return (material, printTime, cleanTime)
