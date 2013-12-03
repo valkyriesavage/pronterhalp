@@ -1,0 +1,165 @@
+\documentclass{sigchi}
+
+% --- Copyright notice ---
+\clubpenalty=10000 
+\widowpenalty = 10000
+
+\bibliographystyle{plain}
+
+% To make various LaTeX processors do the right thing with page size.
+\def\pprw{8.5in}
+\def\pprh{11in}
+\special{papersize=\pprw,\pprh}
+\setlength{\paperwidth}{\pprw}
+\setlength{\paperheight}{\pprh}
+\setlength{\pdfpagewidth}{\pprw}
+\setlength{\pdfpageheight}{\pprh}
+
+% create a shortcut to typeset table headings
+\newcommand\tabhead[1]{\small\textbf{#1}}
+
+\usepackage{balance}
+\usepackage{times}
+\usepackage{url}
+\usepackage{graphicx} % for EPS use the graphics package instead
+%\usepackage{bibspacing} % save vertical space in references
+
+%\pagenumbering{arabic} % - remove for final camera-ready
+\pagenumbering{gobble}
+
+\makeatletter
+\def\url@leostyle{%
+  \@ifundefined{selectfont}{\def\UrlFont{\sf}}{\def\UrlFont{\small\bf\ttfamily}}}
+\makeatother
+\urlstyle{leo}
+
+% Make sure hyperref comes last of your loaded packages, 
+% to give it a fighting chance of not being over-written, 
+% since its job is to redefine many LaTeX commands.
+\usepackage[pdftex]{hyperref}
+\hypersetup{
+pdftitle={Support Support : Visualizing Part Orientation and Effects Thereof for 3D Printing},
+pdfauthor={Valkyrie Savage & Derrick Cheng},
+pdfkeywords={3D printing, prototyping, fabrication},
+bookmarksnumbered,
+pdfstartview={FitH},
+colorlinks,
+citecolor=black,
+filecolor=black,
+linkcolor=black,
+urlcolor=black,
+breaklinks=true,
+}
+
+\begin{document}
+\input{inputmacros} %defines comments, squishlist, other macros.
+
+\title{Support Support : Visualizing Part Orientation and Effects Thereof for 3D Printing}
+
+%\numberofauthors{1}
+%  \author{
+%    \alignauthor Author(s) Removed for Blind Review Process
+%  }
+
+\numberofauthors{1}
+\author{
+  \alignauthor Valkyrie Savage \& Derrick Cheng\\
+    \affaddr{University of California, Berkeley}\\
+    \affaddr{Berkeley Institute of Design, Computer Science Division}\\
+    \email{\{valkyrie,derrick\}@eecs.berkeley.edu}\\
+}
+
+\maketitle
+
+\begin{abstract}
+3D printers proliferate, yet every step leading from idea to print is too complicated for all but dedicated users to perform.  Those creating 3D printable objects have many concerns related to how the printing will go. While very fancy printers have multiple material capabilities and easy-dissolve supports, hobbyist-level machines are typically limited to a single material used for both the model and the model supports. Thus, one common user concern is how difficult support removal will be; this is based on the angle of attachment between model and support (e.g. removing support oblique to the model is more difficult), the accessibility of the area of support material (e.g. support is easy to remove from a flat, exposed surface and more difficult to remove from a curved surface partially obscured by other faces), and the amount of support (e.g. more support takes longer). Another common concern is the total printing time; users don't necessarily want to wait for long prints. A third issue is material waste; excess support material used in a print must be thrown away and cannot be used again.  Finally, users may have areas of high detail in which they do not want to have support in their final prints, as support removal can break or damage finely-details surfaces.  Unfortunately, these four issues are often at odds, and all depend upon the model's orientation in the bed.  We have designed a tool which automatically generates several random model orientations and calculates statistics for each of these four metrics.  We present these calculations to the user in an interactive web-based tool.
+\end{abstract}
+
+\keywords{Prototyping; Fabrication; 3D Printing}
+
+\category{H.5.2}{User Interfaces (D.2.2, H.1.2, I.3.6)}{Prototyping}
+
+\terms{Design, Human Factors}
+
+\section{Introduction}
+3D printing has become an entrenched part of the prototyping process for professional industrial designers, and thanks to patent expiry it has begun to proliferate as a practice among hobbyists.  However, there are many important differences in the ways that printers are used between these two groups.
+
+The most important practical differences are related to machine specifications.  FDM-style 3D printers (popular among both hobbyists and professionals) work by laying down layers at a time of a typically plastic-like material, melting it out in strands and fusing each layer to the previous one.  This only works if there is something in the layer underneath: in 3D printing culture, this is known as the 45 degree rule.  Overhang angles in an FDM part cannot be greater than 45 degrees without support material underneath.  Here is the difference between hobbyist and professional machines: professional machines offer \emph{two different} materials, one for the model and one for support.  In this design, the support material is created to dissolve or melt, so that the final model part is simple to extract.  In contrast, hobbyist-level printers are limited to just \emph{one}.  This means that extracting the model from the support material can be a time-consuming process, which is potentially damaging to the model itself.
+
+Another crucial difference between the machines used by hobbyists and professionals is their \emph{reliability}.  A professional can typically start a print and walk away, allowing it to run its course.  In contrast, hobbyist machines must be carefully observed until at least two layers have been laid down, to ensure that the print sticks to the bed correctly and that the calibration of the machine is correct.  As such, time invested in a print on a hobbyist machine is much more precious, and many hobbyist 3D printers are loath to run extended unsupervised print jobs.
+
+Other differences between professionals and hobbyists are in the types and complexities of models they design, the tools they use for design, and in their uses of the final artifacts.  However, we selected to focus on the support material for our visualization topic.
+
+Several things arise in conversations about support material, including time to print, support material volume, difficulty or time to remove support material, and faces covered in support material.
+
+\subsection{Time to Print}
+The time it takes for a part to print on FDM-style machines increases monotonically (but not linearly) with the amount of material required in a print.  As mentioned, hobbyists prefer not leaving printing models unattended for extended periods of time.
+
+\subsection{Support Material Volume}
+Support material from hobbyist-level printers cannot be recycled as yet.  Some support materials, for example PLA which is produced from corn, are biodegradable, however the most popular material--ABS--creates waste that does not degrade easily.  Support material is also not free, and costs a set amount per unit volume used in a print.  Hobbyists are in general sensitive to wasting money and creating waste, so the volume of support material printed is a concern for them.  Irrespective of the orientation of the model, the volume of material used for the model does not change, so this can be disregarded.
+
+\subsection{Support Material Removal}
+Removal of support material is an issue for hobbyist machines.  Because support is fabricated of the same material as models, separating support layers from model layers can be challenging.  The main issues that contribute to support material removal time are surface area of model contacted by support material, angle of incidence of support material on model, connected components of support material, curvature of surface contacted by support material, and accessibility of support material.
+
+\subsubsection{Surface Area}
+The surface area of a model contacted by support material is directly proportional to the support removal time.  Larger surface areas in contact with support lead to longer removal times.
+
+\subsubsection{Angle of Incidence}
+The angle at which support contacts model affects support removal time.  Support which has a contact of 90 degrees is significantly easier to remove than support contacting at an oblique angle.
+
+\subsubsection{Connected Components}
+Support material adheres well to itself, and is easiest to pull off as larger chunks.  The more connected components there are created in support material for a model, the longer it will take to remove because leverage from one component can't be applied to another.
+
+\subsubsection{Curvature}
+Model surfaces don't always have smooth and slight curves.  When printing a model like a person's head, quickly-varying curvature over the surface makes material more difficult to remove.  Smooth curves over large areas are easy to pry support from, however detailed peaks and valleys in small spaces are more difficult to extract support from.
+
+\subsubsection{Accessibility}
+3D printers have opened up worlds beyond traditional manufacturing processes, and many objects that can be fabricated with a 3D printer cannot be fabricated with any other type of machinery.  Designs can have completely enclosed, freely-moving parts, printed-in-place mechanisms like hinges or chain links, or any of a number of other interesting configurations.  To allow these types of creations to be printed, support material is sometimes very difficult to access from the outside of a model.
+
+\section{Related Work}
+There are numerous tools available for free or a fee which assist users with certain tasks in 3D printing.  These tools are mostly focused on offering flexibility for users to customize their prints, rather than comparing different options.
+
+\subsection{Visualization Design}
+In terms of visualization design, there are multiple prior works in the space of multi-dimensional sampling and optimization.
+
+The most crucial works are on evenly sampling the surface of a sphere.  The 6D position of a 3D print is reducible to the three directional dimensions, since location in X, Y on the print bed does not affect print time or support, and, since by increasing Z we only cause more support structure to be created underneath, we can safely assume that Z position will be as close to 0 as possible.
+
+Randomly sampling that 3-dimensional space is a spherical point picking problem.  Spherical point picking has been studied previously by mathematicians.  To pick a random point on the surface of a unit sphere, it is incorrect to select spherical coordinates $\theta$ and $\phi$ from uniform distributions theta in [0,2$\pi$) and $\phi$ in $[0,\pi]$, since the area element $d\Omega=sin\phi d\theta d\phi$ is a function of $\phi$, and hence points picked in this way will be "bunched" near the poles \cite{wolfram}.  In \cite{sphere-point} Marsaglia offers an elegant way of selecting randomly distributed points on the surface of a sphere: in essence, two numbers $x_1$ and $x_2$ are chosen from independent uniform distributions on $(-1, 1)$ and pairs that do not satisfy $x_1^2 + x_2^2 < 1$ are rejected.  Points x, y, and z are then created with $x = 2x_1\sqrt[]{1-x_1^2-x_2^2}$, $y = 2x_2\sqrt[]{1-x_1^2-x_2^2}$, $z = 1 - 2(x_1^2 + x_2^2)$.
+
+We initially built off this work, however with further literature and practical review we realized that in 3D printing it is not actually a sphere that is optimized over!  A 2-dimensional square will do.  Rotation about the z-axis (yaw) does not affect support material usage, accessibility, or any of our other metrics.
+
+Multi-dimensional sampling and optimizations have been explored in visualization previously, as mentioned.  The foundational work on this was Design Galleries \cite{design-galleries}.
+
+\subsection{3D Printing}
+
+\section{Supporting a Wizzard}
+some story about how a user goes through the process of choosing things in our interface
+
+\section{Implementation}
+all the details!
+
+\subsection{Data Generation}
+
+\subsection{Visualization}
+
+\section{Evaluation}
+suggestions we got from people.
+
+\section{Limitations}
+in the future
+
+\section{Discussion}
+ask again later
+
+\section{Conclusion}
+balallaa
+
+\section{Acknowledgements}
+This material is based upon work supported by the National Science Foundation under Grant No. DGE 1106400.  The authors would like to thank the kind users of the Ultimaker forums for their assistance with Cura and data generation.
+
+\balance
+\bibliographystyle{acm-sigchi}
+\small
+\bibliography{references}
+
+\end{document}
