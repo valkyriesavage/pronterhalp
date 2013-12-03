@@ -1,0 +1,1223 @@
+<?xml version='1.0' standalone='no'?>
+<!--Written in KDevelop (http://www.kdevelop.org/)-->
+<svg baseProfile='full' contentScriptType='text/ecmascript' contentStyleType='text/css' height='37502.6364px' onload='init()' preserveAspectRatio='xMidYMid meet' version='1.0' width='516.0px' xmlns='http://www.w3.org/2000/svg' xmlns:inkscape='http://www.inkscape.org/namespaces/inkscape' xmlns:slice='http://www.reprap.org/slice' xmlns:xlink='http://www.w3.org/1999/xlink' zoomAndPan='magnify'>
+	<metadata>
+		<slice:layers id='sliceData' controlBoxHeight='720' controlBoxWidth='240' decimalPlacesCarried='4' edgeWidth='0.72' layerHeight='0.4' margin='20' marginTop='60' maxX='16.8039' maxY='0.0' maxZ='50.2' minX='-16.8193' minY='-72.7931' minZ='2.2' procedureName='vectorwrite' svgMinWidth='516' template='svg_layer' textHeight='22.5' unitScale='3.7' version='0.1' yAxisPointingUpward='true' />
+	</metadata>
+	<script type='text/ecmascript'>
+<![CDATA[
+globalMetadata = document.getElementsByTagNameNS('http://www.reprap.org/slice', 'layers')[0];
+globalSliceMinX = globalMetadata.getAttribute('minX') * 1;
+globalSliceMaxX = globalMetadata.getAttribute('maxX') * 1;
+globalSliceMinY = globalMetadata.getAttribute('minY') * 1;
+globalSliceMaxY = globalMetadata.getAttribute('maxY') * 1;
+globalSliceMinZ = globalMetadata.getAttribute('minZ') * 1;
+globalSliceMaxZ = globalMetadata.getAttribute('maxZ') * 1;
+
+//Control var's
+globalLayerIndex = 0; //Number of currently viewed layer (zero index)
+globalLatitude = 60.0;
+globalLongitude = 45.0;
+globalControlBoxHeight = globalMetadata.getAttribute('controlBoxHeight') * 1;
+globalControlBoxWidth = globalMetadata.getAttribute('controlBoxWidth') * 1;
+globalSliding = false;
+globalObserving = false
+
+//Display var's
+globalMargin = globalMetadata.getAttribute('margin') * 1;
+globalMarginTop = globalMetadata.getAttribute('marginTop') * 1;
+globalDimensionX = globalSliceMaxX - globalSliceMinX;
+globalDimensionY = globalSliceMaxY - globalSliceMinY;
+globalDimensionZ = globalSliceMaxZ - globalSliceMinZ;
+magnitudeXYSquared = globalDimensionX * globalDimensionX + globalDimensionY * globalDimensionY;
+globalDimensionMagnitude = Math.sqrt(magnitudeXYSquared + globalDimensionZ * globalDimensionZ);
+globalGlobeTravelRadian = 0.0;
+globalGlobeInnerObserverRadius = 0.0;
+globalTextHeight = globalMetadata.getAttribute('textHeight') * 1.0;
+globalUnitScale = globalMetadata.getAttribute('unitScale') * 1.0;
+globalXOffset = globalControlBoxWidth + globalMargin + globalMargin;
+globalYOffset = globalMargin + globalMarginTop;
+globalZoomScale = 1.0; //Default 1:1 may need smaller scale for large objects
+globalScale = globalUnitScale * globalZoomScale;
+
+//Globals to be set in init
+globalLayers = [];
+globalSlider = 0;
+globalThumb = 0;
+globalThumbRadius = 0.0;
+globalSliderWidthMinusDiameter = 0.0;
+
+
+function changeScale(newScale) {
+	globalZoomScale = newScale;
+	globalScale = globalUnitScale * globalZoomScale;
+	if (globalZoomScale >=1) { //dont scale line thickness for large display scale
+		document.getElementById('layerData').setAttributeNS(null, 'stroke-width', 2.0 / (globalScale));
+	}
+}
+
+function changeScaleIso(newScale) {
+	changeScale(newScale);
+	viewIso();
+}
+
+function changeScaleLayer(newScale) {
+	changeScale(newScale);
+	viewLayer();
+}
+
+function changeScaleScroll(newScale) {
+	changeScale(newScale);
+	viewScroll();
+}
+
+function displayIso(latitude, longitude) {
+	latitude = Math.max(0.0, latitude);
+	latitude = Math.min(89.0, latitude);
+	globalLatitude = Math.round(latitude);
+	globalLongitude = Math.round((longitude + 540.0) % 360.0) - 180.0;
+	latitudeRadians = getRadians(globalLatitude);
+	longitudeWiddershinsRadians = getRadians(90.0 - globalLongitude);
+	unitX = Math.cos(longitudeWiddershinsRadians);
+	unitY = Math.sin(longitudeWiddershinsRadians);
+	latitudeOverLayers = globalDimensionZ / globalLayers.length;
+	globalOneOverUnitScaleString = (1.0 / globalUnitScale).toString();
+	yScale = -1.0 * globalScale * Math.cos(latitudeRadians);
+	scaleRotateCenterString = ' scale(' + globalScale + ', ' + yScale + ')';
+	scaleRotateCenterString += ' rotate(' + (-1.0 * globalLongitude).toString() + ')';
+	centerX = (-0.5 * globalDimensionX - globalSliceMinX).toString();
+	centerY = (-0.5 * globalDimensionY - globalSliceMinY).toString();
+	scaleRotateCenterString += ' translate(' + centerX + ', ' + centerY + ')';
+	x = 0.5 * globalDimensionMagnitude * globalScale + globalXOffset;
+	halfLengthMinusOne = 0.5 * (globalLayers.length - 1);
+	for (var i in globalLayers) {
+		latitudeZSin = Math.sin(latitudeRadians) * (i - halfLengthMinusOne) * latitudeOverLayers
+		y = globalScale * (0.5 * globalDimensionMagnitude - latitudeZSin) + globalYOffset;
+//		y = globalDimensionY * globalScale + globalYOffset - i * unitY * latitudeOverLayers;
+		transformString = ' translate(' + x + ', ' + y + ')';
+		globalLayers[i].setAttributeNS(null, 'transform', transformString + scaleRotateCenterString);
+	}
+	setText('latitudeIso', 'Latitude: ' + globalLatitude.toString() + '°');
+	setText('longitudeIso', 'Longitude: ' + globalLongitude.toString() + '°');
+	globeMoveableRadius = globalGlobeTravelRadian * latitudeRadians + globalGlobeInnerObserverRadius;
+	globalObserver.setAttribute('cx', globalGlobeCenterX + unitX * globeMoveableRadius);
+	globalObserver.setAttribute('cy', globalGlobeCenterY - unitY * globeMoveableRadius);
+}
+
+function displayIsoByLatitude(latitude) {
+	displayIso(latitude, globalLongitude);
+}
+
+function displayIsoByLongitude(longitude) {
+	displayIso(globalLatitude, longitude);
+}
+
+function displayLayer(layerNum) {
+	if (globalLayers.length <= 1) {
+		document.getElementById('maxIndexLayer').setAttributeNS(null, 'visibility', 'hidden');
+		document.getElementById('minIndexLayer').setAttributeNS(null, 'visibility', 'hidden');
+		globalSlider.setAttributeNS(null, 'visibility', 'hidden');
+		globalThumb.setAttributeNS(null, 'visibility', 'hidden');
+	}
+	if (layerNum <= 0) {
+		document.getElementById('decreaseLayerIndex').setAttributeNS(null, 'visibility', 'hidden');
+	}
+	else {
+		document.getElementById('decreaseLayerIndex').setAttributeNS(null, 'visibility', 'visible');
+	}
+	if (layerNum >= globalLayers.length - 1) {
+		document.getElementById('increaseLayerIndex').setAttributeNS(null, 'visibility', 'hidden');
+	}
+	else {
+		document.getElementById('increaseLayerIndex').setAttributeNS(null, 'visibility', 'visible');
+	}
+	if (layerNum < 0 || layerNum >= globalLayers.length) {
+		return
+	}
+	globalLayers[globalLayerIndex].setAttributeNS(null, 'visibility', 'hidden');
+	currentLayerElement = globalLayers[layerNum]
+	currentLayerElement.setAttributeNS(null, 'visibility', 'visible');
+	globalLayerIndex = layerNum;
+	setText('currentIndexLayer', 'Layer: ' + globalLayerIndex.toString() + ', ' + currentLayerElement.getAttribute('id'));
+	//Slider
+	if (!globalSliding) {
+		placeThumb(globalSliderWidthMinusDiameter / (globalLayers.length - 1) * globalLayerIndex + globalThumbRadius);
+	}
+}
+
+function getDegrees(radians) {
+	return radians / Math.PI * 180.0;
+}
+
+function getRadians(degrees) {
+	return degrees / 180.0 * Math.PI;
+}
+
+function getScaleTransformString(scale) {
+	scaleTransformString = 'scale(' + scale + ' ' + (scale * - 1)
+	return scaleTransformString + ') translate(' + (globalSliceMinX * - 1) + ' ' + (globalSliceMinY * - 1) + ')';
+}
+
+function getWidth() {
+	return (globalDimensionX * globalScale) + globalXOffset
+}
+
+function hideElements(elementNames) {
+	for (var elementNameIndex in elementNames) {
+		document.getElementById(elementNames[elementNameIndex]).setAttributeNS(null, 'visibility', 'hidden');
+	}
+}
+
+function init() {
+	//Find only layer groups
+	globe = document.getElementById('globe');
+	globalGlobeCenterX = globe.getAttribute('cx') * 1;
+	globalGlobeCenterXWindow = globalGlobeCenterX + globalMargin;
+	globalGlobeCenterY = globe.getAttribute('cy') * 1;
+	globalGlobeCenterYWindow = globalGlobeCenterX + globalMarginTop;
+	globalObserver = document.getElementById('observer');
+	globeRadius = globe.getAttribute('r') * 1.0;
+	observerRadius = globalObserver.getAttribute('r') * 1.0;
+	globalGlobeInnerObserverRadius = document.getElementById('cover').getAttribute('r') * 1.0 + observerRadius;
+	globalGlobeTravelRadian = getDegrees(globeRadius - globalGlobeInnerObserverRadius - observerRadius) / 89.0;
+	globalSlider = document.getElementById('slider');
+	globalSliderX = globalSlider.getAttribute('x') * 1;
+	globalSliderXWindow = globalSliderX + globalMargin
+	globalThumb = document.getElementById('thumb');
+	globalThumbRadius = globalThumb.getAttribute('r') * 1;
+	globalSliderWidthMinusRadius = globalSlider.getAttribute('width') * 1 - globalThumbRadius;
+	globalSliderWidthMinusDiameter = globalSliderWidthMinusRadius - globalThumbRadius;
+	var allGroups = document.getElementsByTagName('g');
+	for (var i = 0; i < allGroups.length; i++) {
+		if (allGroups[i].id.indexOf('z:') == 0) {
+			globalLayers.push(allGroups[i]);
+		}
+	}
+
+	//Slider
+	layerControlBox = document.getElementById('layerControlBox');
+	layerControlBox.addEventListener('mouseup', sliderUp, false);
+	layerControlBox.addEventListener('mousemove', sliderMove, false);
+	globalSlider.addEventListener('mousedown', sliderDownMove, false);
+	globalThumb.addEventListener('mousedown', sliderDownMove, false);
+	//Observer
+	isoControlBox = document.getElementById('isoControlBox');
+	isoControlBox.addEventListener('mouseup', observerUp, false);
+	isoControlBox.addEventListener('mousemove', observerMove, false);
+	globe.addEventListener('mousedown', observerDownMove, false);
+	globalObserver.addEventListener('mousedown', observerDownMove, false);
+	
+	//Control box data
+	setText('maxIndexLayer', globalLayers.length - 1);
+	changeScaleLayer(globalZoomScale);
+}
+
+function observerDown(event) {
+	globalObserving = true;
+}
+
+function observerDownMove(event) {
+	globalObserving = true;
+	observerMove(event);
+}
+
+function observerMove(event) {
+	if (!globalObserving) {
+		return;
+	}
+	observerX = event.clientX - globalGlobeCenterXWindow + window.pageXOffset;
+	observerY = event.clientY - globalGlobeCenterYWindow + window.pageYOffset;
+	distanceFromCenter = Math.sqrt(observerX * observerX + observerY * observerY);
+	latitudeRadians = (distanceFromCenter - globalGlobeInnerObserverRadius) / globalGlobeTravelRadian;
+	longitudeRadians = Math.atan2(observerX, -observerY);
+	displayIso(getDegrees(latitudeRadians), getDegrees(longitudeRadians));
+}
+
+function observerUp(event) {
+	globalObserving = false;
+}
+
+function placeThumb(value) {
+	if (globalLayers.length > 1) {
+		globalThumb.setAttribute('cx', globalSliderX + value);
+	}
+}
+
+function setScaleText(scaleID) {
+	setText(scaleID, ': ' + globalZoomScale);
+}
+
+function setSVG(width, height) {
+	rootSVG = document.getElementsByTagName('svg')[0];
+	svgMinWidth = globalMetadata.getAttribute('svgMinWidth') * 1;
+	height = Math.max(globalControlBoxHeight + globalMargin + globalMarginTop, height);
+	width = Math.max(svgMinWidth, width);
+	rootSVG.setAttributeNS(null, 'width', width + 'px')
+	rootSVG.setAttributeNS(null, 'height', height + 'px')
+}
+
+function setText(id, str) {
+	e = document.getElementById(id)
+	if (e != null)
+		e.firstChild.nodeValue = str;
+}
+
+function showElements(elementNames) {
+	for (var elementNameIndex in elementNames) {
+		document.getElementById(elementNames[elementNameIndex]).setAttributeNS(null, 'visibility', 'visible');
+	}
+}
+
+function sliderDown(event) {
+	globalSliding = true;
+}
+
+function sliderDownMove(event) {
+	globalSliding = true;
+	sliderMove(event);
+}
+
+function sliderMove(event) {
+	if (!globalSliding) {
+		return;
+	}
+	value = event.clientX - globalSliderXWindow + window.pageXOffset;
+	if (value >= globalThumbRadius && value <= globalSliderWidthMinusRadius) {
+		placeThumb(value);
+		zoneWidth = globalSliderWidthMinusDiameter / (globalLayers.length);
+		newLayer = Math.round((value - globalThumbRadius - 0.5 * zoneWidth) / zoneWidth)
+		if (newLayer != globalLayerIndex) {
+			displayLayer(newLayer)
+		}
+	}
+}
+
+function sliderUp(event) {
+	globalSliding = false;
+}
+
+function viewIso() {
+	height = (globalDimensionMagnitude * globalScale) + globalYOffset;
+	setSVG((globalDimensionMagnitude * globalScale) + globalXOffset, height);
+	for (var i in globalLayers) {
+//		globalLayers[i].setAttributeNS(null, 'transform', 'translate(' + globalMargin + ' ' + height + ')');
+		globalLayers[i].setAttributeNS(null, 'visibility', 'visible');
+		globalLayers[i].getElementsByTagName('text')[0].setAttributeNS(null, 'visibility', 'hidden');
+		pathElements = globalLayers[i].getElementsByTagName('path');
+		for (var pathElementIndex = 0; pathElementIndex < pathElements.length; pathElementIndex++) {
+			  pathElements[pathElementIndex].setAttributeNS(null, 'transform', '');
+		  }
+	  }
+	  //show control box
+	hideElements(['decreaseLayerIndex', 'increaseLayerIndex', 'isoViewButton', 'layerControlBox', 'layerViewLabel', 'scrollControlBox', 'scrollViewLabel']);
+	showElements(['isoControlBox', 'isoViewLabel', 'layerViewButton', 'scrollViewButton']);
+	displayIso(globalLatitude, globalLongitude);
+	setScaleText('scaleIso');
+}
+
+function viewLayer() {
+	//Set svg size and view port
+	height = (globalDimensionY * globalScale) + globalYOffset;
+	setSVG(getWidth(), height);
+	//move and hide all layers 
+	for (var i in globalLayers) {
+		globalLayers[i].setAttributeNS(null, 'transform', 'translate(' + globalXOffset + ' ' + height + ')');
+		globalLayers[i].setAttributeNS(null, 'visibility', 'hidden');
+		globalLayers[i].getElementsByTagName('text')[0].setAttributeNS(null, 'visibility', 'hidden');
+		transform = getScaleTransformString(globalScale);
+		pathElements = globalLayers[i].getElementsByTagName('path');
+		for (var pathElementIndex = 0; pathElementIndex < pathElements.length; pathElementIndex++) {
+			pathElements[pathElementIndex].setAttributeNS(null, 'transform', transform);
+		}
+	}
+
+	//show control box
+	hideElements(['isoControlBox', 'isoViewLabel', 'layerViewButton', 'scrollControlBox', 'scrollViewLabel'])
+	showElements(['isoViewButton', 'layerControlBox', 'layerViewLabel', 'scrollViewButton'])
+	
+	//show current layer
+	displayLayer(globalLayerIndex);
+	setScaleText('scaleLayer');
+}
+
+function viewScroll() {
+	//Set svg size and view port
+	yDimensionScale = globalDimensionY * globalScale
+	singleHeight = (globalMargin + yDimensionScale + globalTextHeight)
+	height = globalLayers.length * singleHeight + globalMargin + globalMargin + globalYOffset;
+	setSVG(getWidth(), height);
+
+	//move and show all layers 
+	for (var i in globalLayers) {
+		x = globalXOffset;
+		y = i * singleHeight + yDimensionScale + globalYOffset;
+		transform = getScaleTransformString(globalScale);
+		globalLayers[i].setAttributeNS(null, 'transform', 'translate(' + x + ', ' + y + ')');
+		pathElements = globalLayers[i].getElementsByTagName('path');
+		for (var pathElementIndex = 0; pathElementIndex < pathElements.length; pathElementIndex++) {
+			pathElements[pathElementIndex].setAttributeNS(null, 'transform', transform);
+		}
+		globalLayers[i].setAttributeNS(null, 'visibility', 'visible');
+		globalLayers[i].getElementsByTagName('text')[0].setAttributeNS(null, 'visibility', 'visible');
+	}
+
+	//show control box
+	hideElements(['isoControlBox', 'isoViewLabel', 'layerControlBox', 'layerViewLabel', 'scrollViewButton'])
+	showElements(['isoViewButton', 'layerViewButton', 'scrollControlBox', 'scrollViewLabel'])
+	setScaleText('scaleScroll');
+}
+	]]>
+	</script>
+	<title >x90.0y0z0-wizzard_raft.gcode - Slice Layers</title>
+<!--Begin Layer Data   -->
+	<g id='layerData' fill='#556B2F' fill-rule='evenodd' font-family='Arial' font-size='15px' font-weight='bold' inkscape:groupmode='layer' inkscape:label='Slice Layers' stroke='#00F' stroke-width='0.54px'>
+<!--id='sliceElementTemplate' must be there or else the slice template will not be found-->
+		<g id='z:2.4' inkscape:groupmode='layer' inkscape:label='Layer 0, z:2.4' transform='translate(280.0, 349.3345)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate2.4' fill='#000' stroke='none' y='15' >Layer 0, z:2.4</text>
+			<path d='M 10.0377 -37.9723 L 9.6289 -37.2476 L 9.1664 -37.9393 L 8.7224 -40.6989 L 9.229 -41.1187 L 9.7156 -40.9431 L 10.1192 -40.6487 L 10.2168 -40.1072 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M 9.1105 -40.553 L 9.3003 -40.7103 L 9.545 -40.622 L 9.7905 -40.4429 L 9.8541 -40.09 L 9.6248 -37.3567 L 9.1105 -40.553' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:2.8' inkscape:groupmode='layer' inkscape:label='Layer 1, z:2.8' transform='translate(280.0, 661.1689)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate2.8' fill='#000' stroke='none' y='15' >Layer 1, z:2.8</text>
+			<path d='M 8.8818 -33.2506 L 8.1854 -33.2068 L 7.0907 -39.8396 L 7.1406 -41.2294 L 7.259 -41.777 L 7.811 -41.6819 L 8.8246 -41.3146 L 9.2832 -40.8964 L 9.4459 -39.9939 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M 7.4616 -41.4767 L 7.6518 -41.3567 L 8.6348 -41.0005 L 8.9505 -40.7125 L 9.0832 -39.9767 L 8.5489 -33.5904 L 8.4876 -33.5865 L 7.4518 -39.8627 L 7.5017 -41.2554 L 7.4616 -41.4767' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:3.2' inkscape:groupmode='layer' inkscape:label='Layer 2, z:3.2' transform='translate(280.0, 973.0034)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate3.2' fill='#000' stroke='none' y='15' >Layer 2, z:3.2</text>
+			<path d='M 8.0351 -31.7831 L 8.2961 -31.19 L 7.9308 -30.6094 L 6.5556 -31.6782 L 6.1303 -34.2549 L 6.4436 -42.2399 L 8.3394 -41.5441 L 8.6753 -39.8844 L 8.6203 -39.1881 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M 6.7247 -41.8088 L 8.025 -41.2829 L 8.3125 -39.8624 L 7.6691 -31.7211 L 7.8896 -31.2199 L 7.8378 -31.1376 L 6.8878 -31.8759 L 6.4913 -34.2789 L 6.7247 -41.8088' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:3.6' inkscape:groupmode='layer' inkscape:label='Layer 3, z:3.6' transform='translate(280.0, 1284.8379)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate3.6' fill='#000' stroke='none' y='15' >Layer 3, z:3.6</text>
+			<path d='M 7.5295 -41.9686 L 7.9039 -39.7654 L 7.3956 -32.7906 L 8.542 -30.1852 L 8.0139 -29.8743 L 6.006 -31.4349 L 5.3354 -32.2607 L 5.647 -41.9087 L 5.7453 -42.4782 L 6.3137 -42.3733 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M 5.9765 -42.1464 L 6.17 -42.0417 L 7.2108 -41.6952 L 7.5417 -39.7481 L 7.03 -32.7275 L 8.0836 -30.3331 L 8.0419 -30.3085 L 6.2595 -31.6938 L 5.6995 -32.3834 L 6.0078 -41.9286 L 5.9765 -42.1464' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:4.0' inkscape:groupmode='layer' inkscape:label='Layer 4, z:4.0' transform='translate(280.0, 1596.6724)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate4.0' fill='#000' stroke='none' y='15' >Layer 4, z:4.0</text>
+			<path d='M 6.756 -33.7982 L 8.6765 -29.4337 L 8.2332 -29.0334 L 6.4324 -30.4329 L 6.0076 -30.859 L 4.6497 -32.6283 L 4.9028 -42.2425 L 5.0026 -42.807 L 5.5673 -42.7086 L 6.6812 -42.3379 L 7.133 -39.6518 z M 14.9078 -38.2267 L 15.1658 -37.376 L 14.7182 -36.6631 L 14.1753 -36.3005 L 9.366 -38.0793 L 8.5475 -38.726 L 8.2708 -39.8656 L 8.6838 -40.3406 L 10.1003 -40.0048 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M 5.2284 -42.485 L 5.4219 -42.3776 L 6.3621 -42.0647 L 6.771 -39.6332 L 6.3911 -33.7336 L 8.2422 -29.5267 L 8.2158 -29.5028 L 6.6713 -30.7032 L 6.279 -31.0967 L 5.0129 -32.7463 L 5.2635 -42.2666 L 5.2284 -42.485 M 9.5444 -38.3971 L 8.8681 -38.9315 L 8.6645 -39.7698 L 8.8126 -39.9401 L 9.996 -39.6596 L 14.6152 -37.9511 L 14.7737 -37.4285 L 14.4542 -36.9197 L 14.128 -36.7018 L 9.5444 -38.3971' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:4.4' inkscape:groupmode='layer' inkscape:label='Layer 5, z:4.4' transform='translate(280.0, 1908.5068)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate4.4' fill='#000' stroke='none' y='15' >Layer 5, z:4.4</text>
+			<path d='M 6.3621 -39.5389 L 6.1165 -34.8057 L 8.8194 -28.6627 L 8.3321 -28.2859 L 6.8588 -29.431 L 6.169 -30.1228 L 3.9593 -33.0019 L 4.1824 -43.2475 L 5.6909 -42.7641 L 6.2967 -42.1809 L 5.9432 -41.8825 z M 15.3495 -38.4562 L 15.8787 -36.7094 L 14.2546 -35.6236 L 9.4453 -37.4023 L 8.2356 -38.2658 L 6.994 -39.3394 L 6.6113 -40.6377 L 7.2447 -41.0293 L 10.5402 -40.235 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M 4.4801 -42.8167 L 6.179 -42.2061 L 5.534 -42.2556 L 6.0005 -39.5177 L 5.7526 -34.739 L 8.3766 -28.7754 L 8.3327 -28.7414 L 7.0977 -29.7013 L 6.4404 -30.3605 L 4.3213 -33.1215 L 4.4801 -42.8167 M 9.6153 -37.7233 L 8.4584 -38.5491 L 7.3094 -39.5426 L 7.0343 -40.476 L 7.3063 -40.6441 L 10.4352 -39.89 L 15.0568 -38.1806 L 15.4568 -36.8604 L 14.2072 -36.025 L 9.6153 -37.7233' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:4.8' inkscape:groupmode='layer' inkscape:label='Layer 6, z:4.8' transform='translate(280.0, 2220.3413)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate4.8' fill='#000' stroke='none' y='15' >Layer 6, z:4.8</text>
+			<path d='M 15.6838 -38.4321 L 16.1871 -36.6564 L 14.4688 -35.3317 L 9.6595 -37.1104 L 9.2111 -37.3535 L 8.5234 -37.44 L 7.5092 -38.164 L 6.609 -38.9423 L 6.2611 -38.786 L 5.8817 -38.9199 L 5.6472 -38.6889 L 5.4785 -35.8096 L 8.9655 -27.8849 L 8.5744 -27.4272 L 7.2852 -28.4291 L 6.3305 -29.3867 L 3.2782 -33.3635 L 3.1962 -37.2362 L 3.431 -43.5907 L 5.2812 -42.9909 L 5.8947 -42.4123 L 5.4133 -42.0984 L 5.1845 -41.7768 L 5.3847 -40.5795 L 5.4536 -40.4846 L 5.4647 -40.4855 L 5.5167 -40.5917 L 5.5251 -41.6907 L 9.3705 -40.8281 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M 3.7319 -43.1527 L 5.7736 -42.4368 L 5.2358 -42.4701 L 4.8049 -41.8642 L 5.0436 -40.4367 L 5.2817 -40.1084 L 5.6984 -40.1443 L 5.8769 -40.5085 L 5.8754 -41.2528 L 9.2663 -40.4826 L 15.3868 -38.1598 L 15.7743 -36.7927 L 14.4068 -35.7385 L 9.8085 -37.4391 L 9.3232 -37.7022 L 8.6586 -37.7858 L 7.732 -38.4473 L 6.6708 -39.3648 L 6.245 -39.1734 L 5.7894 -39.3343 L 5.2959 -38.8482 L 5.114 -35.744 L 8.5449 -27.9469 L 8.524 -27.9223 L 7.5241 -28.6994 L 6.6019 -29.6244 L 3.6356 -33.4891 L 3.5563 -37.2347 L 3.7319 -43.1527' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:5.2' inkscape:groupmode='layer' inkscape:label='Layer 7, z:5.2' transform='translate(280.0, 2532.1758)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate5.2' fill='#000' stroke='none' y='15' >Layer 7, z:5.2</text>
+			<path d='M 16.0 -38.3655 L 16.4955 -36.6034 L 14.7707 -35.2898 L 9.9615 -37.0686 L 8.7732 -37.7125 L 6.9514 -37.9418 L 6.633 -38.1917 L 5.5156 -37.6895 L 4.8638 -37.5211 L 4.8373 -36.8208 L 9.113 -27.1037 L 8.6682 -26.6838 L 7.7116 -27.4272 L 6.4919 -28.6505 L 2.5925 -33.7312 L 2.4877 -38.68 L 2.6518 -43.2538 L 2.7492 -43.8264 L 3.3197 -43.7175 L 5.7294 -42.9155 L 5.3807 -42.2936 L 4.508 -42.3491 L 4.6103 -42.3426 L 4.3174 -42.1408 L 4.3334 -42.0338 L 4.508 -41.8489 L 5.0685 -42.0764 L 7.9301 -41.4824 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M 2.9837 -43.4886 L 3.1773 -43.3855 L 5.2023 -42.7115 L 5.1775 -42.6672 L 4.5087 -42.7098 L 3.928 -42.3098 L 3.9941 -41.8688 L 4.4365 -41.4003 L 4.7901 -41.5926 L 5.0952 -41.7032 L 7.828 -41.1359 L 15.7022 -38.0946 L 16.0827 -36.7415 L 14.71 -35.6961 L 10.1105 -37.3973 L 8.8853 -38.0612 L 7.0953 -38.2865 L 6.684 -38.6093 L 5.3959 -38.0304 L 4.5142 -37.8026 L 4.4744 -36.7516 L 8.6812 -27.1911 L 8.6455 -27.1574 L 7.9505 -27.6975 L 6.7633 -28.8882 L 2.9499 -33.8568 L 2.8478 -38.6774 L 3.0126 -43.2712 L 2.9837 -43.4886' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:5.6' inkscape:groupmode='layer' inkscape:label='Layer 8, z:5.6' transform='translate(280.0, 2844.0102)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate5.6' fill='#000' stroke='none' y='15' >Layer 8, z:5.6</text>
+			<path d='M 4.7269 -37.2128 L 4.6975 -36.6007 L 9.2595 -26.3156 L 8.6498 -26.0277 L 8.1381 -26.4253 L 6.6533 -27.9144 L 1.9068 -34.0988 L 1.7792 -40.1228 L 1.9036 -43.5898 L 2.001 -44.1624 L 2.5715 -44.0535 L 4.5456 -43.3965 L 4.7327 -43.2461 L 5.4014 -43.0948 L 5.1774 -42.4835 L 4.6523 -42.5276 L 4.5678 -42.4934 L 4.6388 -42.4362 L 7.1086 -41.9108 L 11.507 -40.0778 L 16.3163 -38.299 L 16.8039 -36.5504 L 15.0727 -35.2479 L 10.2634 -37.0267 L 8.3354 -38.0715 L 7.1896 -38.2157 L 6.3114 -37.9774 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M 2.2355 -43.8246 L 2.4291 -43.7215 L 4.3705 -43.0753 L 4.5968 -42.8935 L 4.9854 -42.8707 L 4.98 -42.8614 L 4.2309 -42.7453 L 4.1724 -42.3496 L 4.4799 -42.1019 L 7.001 -41.5656 L 11.3753 -39.7427 L 16.0189 -38.0252 L 16.3911 -36.6904 L 15.0133 -35.6537 L 10.4124 -37.3554 L 8.4475 -38.4202 L 7.164 -38.5818 L 6.185 -38.3161 L 4.3776 -37.444 L 4.3338 -36.5327 L 8.7878 -26.491 L 8.696 -26.4476 L 8.377 -26.6956 L 6.9247 -28.1521 L 2.2642 -34.2244 L 2.1393 -40.1202 L 2.2644 -43.6072 L 2.2355 -43.8246' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:6.0' inkscape:groupmode='layer' inkscape:label='Layer 9, z:6.0' transform='translate(280.0, 3155.8447)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate6.0' fill='#000' stroke='none' y='15' >Layer 9, z:6.0</text>
+			<path d='M 4.8165 -37.3721 L 4.7465 -35.9167 L 9.4018 -25.5332 L 9.0495 -24.9875 L 6.8159 -27.1767 L 1.2197 -34.4682 L 1.1848 -44.5815 L 4.7171 -43.4218 L 4.5681 -42.926 L 4.8588 -42.6423 L 6.2926 -42.3373 L 6.527 -42.3873 L 6.8905 -42.0876 L 10.1521 -40.7253 L 10.7182 -40.1817 L 11.4297 -39.8804 L 12.5207 -39.2528 L 16.4387 -37.8037 L 16.7718 -36.7253 L 16.7449 -36.3422 L 15.3872 -35.2368 L 10.5779 -37.0156 L 7.879 -38.4329 L 5.9038 -37.8968 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M 1.4874 -44.1606 L 4.2729 -43.1947 L 4.1605 -42.8207 L 4.6819 -42.3119 L 6.2927 -41.9692 L 6.4321 -41.999 L 6.7026 -41.7759 L 9.9513 -40.419 L 10.5167 -39.8761 L 11.2692 -39.5574 L 12.3674 -38.9257 L 16.1472 -37.5277 L 16.408 -36.6834 L 16.3967 -36.5229 L 15.3193 -35.6457 L 10.7246 -37.3452 L 7.9212 -38.8174 L 5.7773 -38.2355 L 4.4672 -37.6033 L 4.3828 -35.848 L 8.9937 -25.5637 L 8.986 -25.5518 L 7.0861 -27.416 L 1.5785 -34.592 L 1.4874 -44.1606' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:6.4' inkscape:groupmode='layer' inkscape:label='Layer 10, z:6.4' transform='translate(280.0, 3467.6792)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate6.4' fill='#000' stroke='none' y='15' >Layer 10, z:6.4</text>
+			<path d='M 7.7061 -38.2519 L 6.5861 -38.1121 L 5.4961 -37.8162 L 4.906 -37.5315 L 4.7955 -35.2328 L 9.5443 -24.7508 L 8.9909 -24.4215 L 6.9762 -26.4421 L 0.5354 -34.834 L 0.4387 -44.2467 L 0.5473 -44.7809 L 1.0891 -44.7208 L 5.0874 -43.39 L 5.0898 -42.846 L 5.3948 -42.8204 L 5.4766 -42.7637 L 6.0071 -42.6084 L 6.0743 -42.5134 L 8.8131 -41.3664 L 9.9287 -40.2856 L 11.3521 -39.6829 L 13.535 -38.4272 L 16.5611 -37.308 L 16.6733 -36.9447 L 16.6142 -36.1038 L 15.7838 -35.4277 L 10.9745 -37.2065 L 8.2977 -38.5803 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M 0.7395 -44.5173 L 0.9327 -44.3934 L 4.7285 -43.13 L 4.7313 -42.5148 L 5.2688 -42.4697 L 5.3195 -42.4346 L 5.7856 -42.2981 L 5.84 -42.2212 L 8.6114 -41.0606 L 9.7265 -39.9803 L 11.1916 -39.3599 L 13.3817 -38.1001 L 16.2696 -37.032 L 16.3095 -36.9028 L 16.266 -36.2845 L 15.7159 -35.8366 L 11.1197 -37.5366 L 8.2911 -38.9884 L 7.5923 -38.6005 L 6.5163 -38.4662 L 5.3697 -38.1549 L 4.5567 -37.7627 L 4.4317 -35.1633 L 9.0835 -24.8955 L 9.0478 -24.8743 L 7.2476 -26.6798 L 0.8941 -34.9579 L 0.7982 -44.2953 L 0.7395 -44.5173' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:6.8' inkscape:groupmode='layer' inkscape:label='Layer 11, z:6.8' transform='translate(280.0, 3779.5136)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate6.8' fill='#000' stroke='none' y='15' >Layer 11, z:6.8</text>
+			<path d='M 16.1805 -35.6187 L 11.2762 -37.4326 L 11.1306 -37.6607 L 10.8523 -37.6568 L 8.7119 -38.7266 L 7.5187 -38.0642 L 5.0884 -37.7356 L 4.9955 -37.6908 L 4.8445 -34.5488 L 9.4023 -24.5901 L 9.4859 -24.056 L 8.73 -23.9693 L 8.7303 -24.2155 L 8.4023 -24.4376 L 7.1376 -25.706 L -0.1503 -35.2017 L -0.3051 -44.5809 L -0.1952 -45.1101 L 0.3427 -45.0562 L 5.1566 -43.4539 L 5.3992 -42.8837 L 7.4138 -42.0406 L 7.7639 -42.059 L 8.0116 -41.7904 L 8.6243 -40.8721 L 8.9219 -40.5898 L 9.1564 -40.0903 L 11.5007 -38.3423 L 16.524 -36.4435 L 16.4834 -35.8653 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -0.0088 -44.8561 L 0.1845 -44.7294 L 4.8889 -43.1636 L 5.1252 -42.6081 L 7.3507 -41.6767 L 7.6139 -41.6906 L 8.3473 -40.6387 L 8.6249 -40.3754 L 8.8689 -39.8556 L 16.1461 -36.2015 L 16.1352 -36.046 L 16.1126 -36.0276 L 11.5145 -37.7283 L 11.3261 -38.0234 L 10.9349 -38.018 L 8.7031 -39.1335 L 7.4033 -38.4119 L 4.9835 -38.0847 L 4.6462 -37.922 L 4.4807 -34.4786 L 9.0905 -24.4063 L 9.2224 -24.2278 L 9.0903 -24.2574 L 8.6328 -24.7163 L 7.409 -25.9437 L 0.2077 -35.3265 L 0.054 -44.6336 L -0.0088 -44.8561' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:7.2' inkscape:groupmode='layer' inkscape:label='Layer 12, z:7.2' transform='translate(280.0, 4091.3481)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate7.2' fill='#000' stroke='none' y='15' >Layer 12, z:7.2</text>
+			<path d='M 8.4172 -40.4051 L 8.6899 -40.1465 L 8.4225 -39.2264 L 8.4841 -38.5165 L 7.3313 -37.8765 L 5.5752 -37.6573 L 5.0297 -36.699 L 4.8935 -33.8648 L 9.5839 -23.7171 L 8.9788 -23.2852 L 7.299 -24.9698 L -0.8358 -35.569 L -0.936 -44.4819 L -0.8301 -45.5303 L 5.6137 -43.4022 L 5.6037 -42.8867 L 6.6123 -42.4646 L 6.8043 -42.4639 L 7.2101 -42.2144 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M 0.2397 -44.8532 L 5.2486 -43.145 L 5.239 -42.6491 L 6.5394 -42.1048 L 6.7019 -42.1042 L 6.9544 -41.949 L 8.1402 -40.1717 L 8.283 -40.0363 L 8.058 -39.2623 L 8.1053 -38.7179 L 7.2175 -38.2251 L 5.3516 -37.9922 L 4.6742 -36.8023 L 4.5297 -33.7939 L 9.132 -23.8369 L 9.0181 -23.7556 L 7.5704 -25.2075 L -0.4771 -35.693 L -0.5833 -45.1339 L 0.2397 -44.8532' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:7.6' inkscape:groupmode='layer' inkscape:label='Layer 13, z:7.6' transform='translate(280.0, 4403.1826)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate7.6' fill='#000' stroke='none' y='15' >Layer 13, z:7.6</text>
+			<path d='M 10.9481 -41.7251 L 11.1347 -41.0554 L 11.3846 -40.6895 L 13.1031 -39.2116 L 13.5327 -38.4237 L 12.6389 -38.3426 L 8.5656 -39.4732 L 8.0708 -39.6727 L 7.5693 -37.9249 L 7.144 -37.6888 L 6.2674 -37.5794 L 5.0512 -35.4429 L 4.9425 -33.1808 L 9.7217 -22.94 L 9.0548 -22.6347 L 7.4604 -24.2337 L -1.1073 -35.4509 L -1.3255 -35.8681 L -1.2243 -45.3734 L -0.9505 -45.8085 z M 9.6596 -41.1079 L 9.8527 -41.2297 L 9.8589 -41.3863 L 9.6768 -41.5224 L 6.4391 -42.6495 L 6.4312 -42.629 L 6.4087 -42.6384 L 7.7663 -40.6035 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M 8.2521 -40.3604 L 9.8053 -40.7741 L 10.2049 -41.0262 L 10.2262 -41.5612 L 9.8478 -41.8441 L 6.2285 -43.1041 L 5.9694 -42.4319 L 6.1695 -42.3482 L 7.6099 -40.1893 L 8.2521 -40.3604' fill='none' stroke='#fa0' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:8.0' inkscape:groupmode='layer' inkscape:label='Layer 14, z:8.0' transform='translate(280.0, 4715.0171)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate8.0' fill='#000' stroke='none' y='15' >Layer 14, z:8.0</text>
+			<path d='M -1.5035 -45.2518 L -1.4312 -45.6114 L -1.0115 -46.0337 L 9.948 -42.2535 L 10.9476 -38.6659 L 12.2867 -36.7059 L 13.1124 -35.9958 L 13.0561 -35.3357 L 10.6554 -36.002 L 7.5837 -37.2401 L 7.2857 -37.3062 L 7.0899 -37.1382 L 7.1098 -36.8336 L 10.5822 -22.0253 L 10.6784 -20.9871 L 10.0817 -21.0306 L 7.6219 -23.4976 L -0.9265 -34.8024 L -1.601 -36.092 z M 9.2495 -23.4517 L 9.8977 -23.6927 L 7.1653 -36.5077 L 6.4751 -36.6503 L 5.0727 -34.1867 L 4.9915 -32.4969 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M 9.0647 -22.9989 L 10.3146 -23.4636 L 7.4684 -36.8127 L 6.2917 -37.0558 L 4.7172 -34.29 L 4.6276 -32.4247 L 9.0647 -22.9989' fill='none' stroke='#fa0' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:8.4' inkscape:groupmode='layer' inkscape:label='Layer 15, z:8.4' transform='translate(280.0, 5026.8515)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate8.4' fill='#000' stroke='none' y='15' >Layer 15, z:8.4</text>
+			<path d='M -0.7457 -34.1539 L -1.8765 -36.3158 L -1.7826 -45.1303 L -1.5737 -46.1685 L -1.0725 -46.2588 L 8.9479 -42.7819 L 10.7605 -36.2763 L 12.8015 -33.2892 L 12.6313 -32.6861 L 12.0456 -32.7666 L 11.8772 -32.5969 L 11.8982 -32.2744 L 12.7879 -28.4631 L 10.5874 -25.5774 L 8.5566 -26.2379 L 8.321 -25.7923 L 8.4584 -25.159 L 7.8704 -24.9402 L 7.4095 -24.0686 L 6.7013 -24.275 z M 7.4776 -26.6359 L 8.0847 -26.9311 L 6.5468 -34.1438 L 5.8411 -34.2426 L 5.0942 -32.9305 L 5.0405 -31.8129 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M 8.4955 -26.7306 L 6.8463 -34.4654 L 5.6491 -34.633 L 4.7387 -33.0338 L 4.6766 -31.7407 L 7.3072 -26.1527 L 8.4955 -26.7306' fill='none' stroke='#fa0' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:8.8' inkscape:groupmode='layer' inkscape:label='Layer 16, z:8.8' transform='translate(280.0, 5338.686)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate8.8' fill='#000' stroke='none' y='15' >Layer 16, z:8.8</text>
+			<path d='M -1.7887 -46.3659 L -1.1335 -46.484 L 7.9478 -43.3103 L 10.5734 -33.8868 L 11.8342 -32.0414 L 10.5156 -30.3122 L 9.837 -30.5328 L 7.0299 -25.2242 L 6.2515 -24.4631 L -0.5649 -33.5053 L -2.152 -36.5397 L -2.0618 -45.0088 z M 5.1157 -31.6743 L 5.0895 -31.1289 L 6.5669 -27.9907 L 6.6685 -27.9056 L 6.6955 -27.9147 L 6.725 -28.0439 L 5.868 -32.063 L 5.7498 -32.299 L 5.5614 -32.3337 L 5.3959 -32.1666 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M 5.4395 -32.7221 L 5.1066 -32.3861 L 4.7602 -31.7776 L 4.7256 -31.0567 L 6.275 -27.7655 L 6.5923 -27.5001 L 7.0017 -27.638 L 7.0937 -28.0413 L 6.2105 -32.183 L 5.9914 -32.6206 L 5.4395 -32.7221' fill='none' stroke='#fa0' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -0.6454 -45.9321 L 7.6515 -43.0325 L 10.2426 -33.7329 L 11.3903 -32.053 L 10.3841 -30.7335 L 9.6603 -30.9688 L 6.738 -25.4422 L 6.2925 -25.0067 L -0.2596 -33.6984 L -1.7911 -36.6264 L -1.7022 -44.971 L -1.484 -46.055 L -1.1629 -46.1129 L -0.6454 -45.9321' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:9.2' inkscape:groupmode='layer' inkscape:label='Layer 17, z:9.2' transform='translate(280.0, 5650.5205)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate9.2' fill='#000' stroke='none' y='15' >Layer 17, z:9.2</text>
+			<path d='M -2.0037 -46.5634 L -1.1945 -46.7092 L 6.9478 -43.8387 L 10.0956 -32.8952 L 6.6503 -26.3797 L 5.4115 -25.1686 L -0.3841 -32.8568 L -2.4274 -36.7635 L -2.3409 -44.8872 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -0.7031 -46.1542 L 6.6531 -43.5609 L 9.7095 -32.9352 L 6.3584 -26.5978 L 5.4526 -25.7122 L -0.0788 -33.0499 L -2.0665 -36.8502 L -1.9813 -44.8495 L -1.699 -46.2525 L -1.2244 -46.338 L -0.7031 -46.1542' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:9.6' inkscape:groupmode='layer' inkscape:label='Layer 18, z:9.6' transform='translate(280.0, 5962.3549)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate9.6' fill='#000' stroke='none' y='15' >Layer 18, z:9.6</text>
+			<path d='M -2.2186 -46.7608 L -1.2555 -46.9344 L 5.9477 -44.3671 L 8.021 -36.9257 L 9.3251 -33.3114 L 6.2707 -27.5353 L 4.5716 -25.8741 L -0.2033 -32.2083 L -2.7029 -36.9873 L -2.6201 -44.7657 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -0.8647 -46.413 L 5.651 -44.0907 L 7.6778 -36.8161 L 8.9324 -33.339 L 5.9788 -27.7534 L 4.6126 -26.4177 L 0.102 -32.4014 L -2.342 -37.074 L -2.2605 -44.7279 L -1.9139 -46.4499 L -1.286 -46.5631 L -0.8647 -46.413' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:10.0' inkscape:groupmode='layer' inkscape:label='Layer 19, z:10.0' transform='translate(280.0, 6274.1894)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate10.0' fill='#000' stroke='none' y='15' >Layer 19, z:10.0</text>
+			<path d='M -2.4336 -46.9582 L -1.3165 -47.1595 L 4.9476 -44.8956 L 6.3801 -39.7542 L 8.5545 -33.7277 L 5.8911 -28.6909 L 3.7317 -26.5796 L -0.0225 -31.5597 L -2.9784 -37.2112 L -2.8993 -44.6442 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -0.9339 -46.6384 L 4.6506 -44.6201 L 6.0369 -39.6446 L 8.1618 -33.7553 L 5.5992 -28.909 L 3.7727 -27.1232 L 0.2828 -31.7528 L -2.6175 -37.2979 L -2.5397 -44.6064 L -2.129 -46.6473 L -1.3479 -46.788 L -0.9339 -46.6384' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:10.4' inkscape:groupmode='layer' inkscape:label='Layer 20, z:10.4' transform='translate(280.0, 6586.0239)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate10.4' fill='#000' stroke='none' y='15' >Layer 20, z:10.4</text>
+			<path d='M -2.6486 -47.1556 L -1.3775 -47.3847 L 3.9475 -45.424 L 4.7391 -42.5827 L 7.784 -34.1439 L 5.5116 -29.8465 L 2.8918 -27.2851 L 0.1583 -30.9112 L -3.2539 -37.435 L -3.1784 -44.5226 L -3.0439 -45.1911 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -2.4324 -46.4049 L -2.3439 -46.8447 L -1.41 -47.013 L 3.6502 -45.1499 L 4.3959 -42.4731 L 7.3913 -34.1715 L 5.2197 -30.0646 L 2.9328 -27.8287 L 0.4636 -31.1043 L -2.893 -37.5217 L -2.8188 -44.4848 L -2.4324 -46.4049' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:10.8' inkscape:groupmode='layer' inkscape:label='Layer 21, z:10.8' transform='translate(280.0, 6897.8583)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate10.8' fill='#000' stroke='none' y='15' >Layer 21, z:10.8</text>
+			<path d='M -2.8636 -47.353 L -1.4385 -47.6099 L 2.9474 -45.9524 L 7.0135 -34.5602 L 5.132 -31.002 L 2.0519 -27.9906 L 0.3391 -30.2626 L -3.5293 -37.6588 L -3.4576 -44.4011 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -2.6474 -46.6024 L -2.5589 -47.0421 L -1.4726 -47.2379 L 2.6643 -45.6745 L 6.6212 -34.5884 L 4.8401 -31.2201 L 2.0929 -28.5342 L 0.6444 -30.4557 L -3.1684 -37.7455 L -3.098 -44.3633 L -2.6474 -46.6024' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:11.2' inkscape:groupmode='layer' inkscape:label='Layer 22, z:11.2' transform='translate(280.0, 7209.6928)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate11.2' fill='#000' stroke='none' y='15' >Layer 22, z:11.2</text>
+			<path d='M -3.0785 -47.5505 L -1.4994 -47.835 L 2.4863 -46.3171 L 2.4685 -45.8717 L 2.8112 -44.4874 L 6.243 -34.9764 L 4.7524 -32.1576 L 1.212 -28.6961 L 0.5199 -29.6141 L -3.8048 -37.8827 L -3.7367 -44.2796 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -2.8623 -46.7998 L -2.7738 -47.2396 L -1.534 -47.463 L 2.1162 -46.0728 L 2.1067 -45.8349 L 2.4662 -44.3828 L 5.8503 -35.004 L 4.4605 -32.3757 L 1.253 -29.2397 L 0.8252 -29.8072 L -3.4439 -37.9694 L -3.3771 -44.2418 L -2.8623 -46.7998' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:11.6' inkscape:groupmode='layer' inkscape:label='Layer 23, z:11.6' transform='translate(280.0, 7521.5273)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate11.6' fill='#000' stroke='none' y='15' >Layer 23, z:11.6</text>
+			<path d='M -3.2935 -47.7479 L -1.5604 -48.0602 L 2.191 -46.6315 L 2.1499 -45.6037 L 2.9408 -42.4091 L 5.4724 -35.3927 L 4.3728 -33.3132 L 0.916 -29.9334 L 0.2164 -29.897 L -4.0803 -38.1065 L -4.0159 -44.158 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -3.0773 -46.9972 L -2.9888 -47.437 L -1.595 -47.6882 L 1.8209 -46.3872 L 1.7881 -45.5669 L 2.5958 -42.3045 L 5.0797 -35.4203 L 4.0809 -33.5313 L 0.7615 -30.2859 L 0.4283 -30.2685 L -3.7194 -38.1932 L -3.6563 -44.1202 L -3.0773 -46.9972' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:12.0' inkscape:groupmode='layer' inkscape:label='Layer 24, z:12.0' transform='translate(280.0, 7833.3618)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate12.0' fill='#000' stroke='none' y='15' >Layer 24, z:12.0</text>
+			<path d='M -3.5085 -47.9453 L -1.6214 -48.2854 L 1.8957 -46.9459 L 1.8314 -45.3356 L 3.0703 -40.3309 L 4.7019 -35.8089 L 3.9932 -34.4687 L 1.7654 -32.2906 L 0.4813 -30.3264 L -0.1743 -30.3579 L -4.3558 -38.3303 L -4.295 -44.0365 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -3.2923 -47.1946 L -3.2038 -47.6344 L -1.656 -47.9134 L 1.5257 -46.7016 L 1.4696 -45.2988 L 2.7253 -40.2263 L 4.3092 -35.8365 L 3.7013 -34.6868 L 1.4856 -32.5205 L 0.2927 -30.6958 L 0.0488 -30.7076 L -3.9949 -38.4172 L -3.9354 -43.9987 L -3.2923 -47.1946' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:12.4' inkscape:groupmode='layer' inkscape:label='Layer 25, z:12.4' transform='translate(280.0, 8145.1962)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate12.4' fill='#000' stroke='none' y='15' >Layer 25, z:12.4</text>
+			<path d='M -3.7235 -48.1427 L -1.6824 -48.5106 L 1.6004 -47.2604 L 1.5128 -45.0676 L 3.1999 -38.2526 L 3.9314 -36.2252 L 3.6137 -35.6243 L 2.6148 -34.6477 L 0.0911 -30.7875 L -0.565 -30.8187 L -4.6312 -38.5542 L -4.5742 -43.915 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -3.5073 -47.392 L -3.4188 -47.8318 L -1.717 -48.1386 L 1.2304 -47.0161 L 1.151 -45.0308 L 2.8549 -38.148 L 3.5387 -36.2527 L 3.3218 -35.8423 L 2.335 -34.8776 L -0.0975 -31.1569 L -0.3422 -31.1685 L -4.2703 -38.6413 L -4.2146 -43.8772 L -3.5073 -47.392' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:12.8' inkscape:groupmode='layer' inkscape:label='Layer 26, z:12.8' transform='translate(280.0, 8457.0307)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate12.8' fill='#000' stroke='none' y='15' >Layer 26, z:12.8</text>
+			<path d='M -3.9384 -48.3402 L -1.7434 -48.7357 L 1.3051 -47.5748 L 1.1942 -44.7995 L 3.209 -36.6607 L -0.3009 -31.2499 L -0.9557 -31.2796 L -4.9067 -38.778 L -4.8533 -43.7934 z M -1.192 0.0 L -2.1622 0.0 L -2.5293 -0.5839 L -2.036 -1.6091 L -1.4531 -1.6096 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -3.6337 -48.0293 L -1.778 -48.3637 L 0.9351 -47.3305 L 0.8324 -44.7627 L 2.822 -36.7257 L -0.4907 -31.6189 L -0.7333 -31.6299 L -4.5458 -38.8652 L -4.4937 -43.7556 L -3.6337 -48.0293 M -1.8097 -1.2493 L -1.7593 -1.2493 L -1.6151 -0.36 L -1.9633 -0.36 L -2.1186 -0.6071 L -1.8097 -1.2493' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:13.2' inkscape:groupmode='layer' inkscape:label='Layer 27, z:13.2' transform='translate(280.0, 8768.8652)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate13.2' fill='#000' stroke='none' y='15' >Layer 27, z:13.2</text>
+			<path d='M -4.1534 -48.5376 L -1.8044 -48.9609 L 1.0098 -47.8892 L 0.8756 -44.5315 L 2.6955 -37.18 L 2.4763 -36.5517 L -0.6892 -31.7098 L -1.3465 -31.7404 L -5.1822 -39.0018 L -5.1325 -43.6719 z M -0.7861 0.0 L -3.7893 0.0 L -4.1564 -0.5839 L -2.4841 -4.0596 L -1.84 -4.7546 L -1.4196 -3.9055 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -3.8487 -48.2267 L -1.839 -48.5889 L 0.6397 -47.6449 L 0.5138 -44.4947 L 2.3203 -37.1975 L 2.1509 -36.7118 L -0.878 -32.079 L -1.1242 -32.0904 L -4.8212 -39.0892 L -4.7729 -43.6341 L -3.8487 -48.2267 M -1.8787 -4.4875 L -1.2092 -0.36 L -3.5904 -0.36 L -3.7457 -0.6071 L -1.8787 -4.4875' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:13.6' inkscape:groupmode='layer' inkscape:label='Layer 28, z:13.6' transform='translate(280.0, 9080.6996)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate13.6' fill='#000' stroke='none' y='15' >Layer 28, z:13.6</text>
+			<path d='M -4.3684 -48.735 L -1.8654 -49.1861 L 0.7146 -48.2036 L 0.557 -44.2634 L 2.182 -37.6992 L 1.7782 -36.5417 L -1.0793 -32.1709 L -1.7372 -32.2011 L -5.4577 -39.2257 L -5.4116 -43.5503 z M -0.3803 0.0 L -5.4164 0.0 L -5.7835 -0.5839 L -2.724 -6.9427 L -2.1788 -7.8541 L -1.558 -7.2609 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -4.0637 -48.4241 L -1.9 -48.8141 L 0.3445 -47.9593 L 0.1952 -44.2266 L 1.8068 -37.7167 L 1.4528 -36.7018 L -1.2681 -32.5399 L -1.5153 -32.5513 L -5.0967 -39.3133 L -5.052 -43.5125 L -4.0637 -48.4241 M -2.1187 -7.3705 L -1.8975 -7.1058 L -0.8034 -0.36 L -5.2175 -0.36 L -5.3728 -0.6071 L -2.1187 -7.3705' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:14.0' inkscape:groupmode='layer' inkscape:label='Layer 29, z:14.0' transform='translate(280.0, 9392.5341)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate14.0' fill='#000' stroke='none' y='15' >Layer 29, z:14.0</text>
+			<path d='M -4.5833 -48.9324 L -1.9264 -49.4112 L 0.4193 -48.518 L 0.2384 -43.9954 L 1.6685 -38.2185 L 1.08 -36.5318 L -1.4695 -32.632 L -2.1281 -32.6619 L -5.7331 -39.4495 L -5.6908 -43.4288 z M 0.0256 -0.0 L -7.0434 0.0 L -7.4105 -0.5839 L -2.6597 -10.4583 L -1.7142 -10.7261 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -4.2786 -48.6215 L -1.961 -49.0392 L 0.0492 -48.2737 L -0.1234 -43.9586 L 1.2933 -38.236 L 0.7546 -36.692 L -1.6584 -33.0009 L -1.9065 -33.0122 L -5.3721 -39.5374 L -5.3312 -43.391 L -4.2786 -48.6215 M -2.0049 -10.2696 L -0.3975 -0.36 L -6.8445 -0.36 L -6.9998 -0.6071 L -2.4056 -10.1561 L -2.0049 -10.2696' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:14.4' inkscape:groupmode='layer' inkscape:label='Layer 30, z:14.4' transform='translate(280.0, 9704.3686)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate14.4' fill='#000' stroke='none' y='15' >Layer 30, z:14.4</text>
+			<path d='M -4.7983 -49.1299 L -1.9874 -49.6364 L 0.124 -48.8324 L -0.0802 -43.7273 L 1.155 -38.7377 L 0.3819 -36.5218 L -1.8597 -33.0931 L -2.519 -33.1226 L -6.0086 -39.6733 L -5.9699 -43.3073 z M -1.7667 -13.5518 L 0.4314 -0.0 L -8.6704 0.0 L -9.0375 -0.5839 L -2.9612 -13.2133 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -4.4936 -48.819 L -2.022 -49.2644 L -0.2461 -48.5881 L -0.442 -43.6905 L 0.7798 -38.7552 L 0.0565 -36.682 L -2.0487 -33.4619 L -2.2978 -33.4731 L -5.6476 -39.7614 L -5.6103 -43.2695 L -4.4936 -48.819 M -2.0574 -13.0953 L 0.0083 -0.36 L -8.4715 -0.36 L -8.6268 -0.6071 L -2.7071 -12.9111 L -2.0574 -13.0953' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:14.8' inkscape:groupmode='layer' inkscape:label='Layer 31, z:14.8' transform='translate(280.0, 10016.203)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate14.8' fill='#000' stroke='none' y='15' >Layer 31, z:14.8</text>
+			<path d='M -5.0133 -49.3273 L -2.0483 -49.8616 L -0.1713 -49.1468 L -0.3988 -43.4593 L 0.6415 -39.257 L -0.3162 -36.5119 L -2.2498 -33.5543 L -2.9098 -33.5834 L -6.2841 -39.8972 L -6.2491 -43.1857 z M -3.2628 -15.9684 L -1.8192 -16.3774 L 0.8373 0.0 L -10.1241 0.0 L -10.6793 -0.4775 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -4.7086 -49.0164 L -2.0829 -49.4896 L -0.5414 -48.9025 L -0.7606 -43.4225 L 0.2663 -39.2745 L -0.6416 -36.672 L -2.4389 -33.923 L -2.689 -33.934 L -5.9231 -39.9856 L -5.8895 -43.1479 L -4.7086 -49.0164 M -2.1099 -15.9209 L 0.4142 -0.36 L -9.9906 -0.36 L -10.2356 -0.5707 L -3.0083 -15.6663 L -2.1099 -15.9209' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:15.2' inkscape:groupmode='layer' inkscape:label='Layer 32, z:15.2' transform='translate(280.0, 10328.0375)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate15.2' fill='#000' stroke='none' y='15' >Layer 32, z:15.2</text>
+			<path d='M -5.2283 -49.5247 L -2.1093 -50.0868 L -0.4666 -49.4612 L -0.7174 -43.1912 L 0.1281 -39.7762 L -1.0144 -36.5019 L -2.64 -34.0154 L -3.3008 -34.0441 L -6.5596 -40.121 L -6.5282 -43.0642 z M -10.4932 -3.7313 L -9.919 -5.5151 L -3.5643 -18.7235 L -1.8717 -19.203 L 1.2431 0.0 L -11.2185 -0.0 L -11.0115 -1.0648 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -4.9236 -49.2138 L -2.1439 -49.7148 L -0.8367 -49.2169 L -1.0792 -43.1544 L -0.2471 -39.7937 L -1.3398 -36.6621 L -2.8292 -34.3839 L -3.0804 -34.3948 L -6.1986 -40.2096 L -6.1686 -43.0264 L -4.9236 -49.2138 M -2.1624 -18.7465 L 0.82 -0.36 L -10.7818 -0.36 L -10.1439 -3.6415 L -9.5839 -5.3813 L -3.3102 -18.4213 L -2.1624 -18.7465' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:15.6' inkscape:groupmode='layer' inkscape:label='Layer 33, z:15.6' transform='translate(280.0, 10639.872)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate15.6' fill='#000' stroke='none' y='15' >Layer 33, z:15.6</text>
+			<path d='M -5.4432 -49.7221 L -2.1703 -50.3119 L -0.7619 -49.7756 L -1.0359 -42.9232 L -0.3854 -40.2955 L -1.7125 -36.492 L -3.0301 -34.4765 L -3.6918 -34.5047 L -6.835 -40.3448 L -6.8074 -42.9427 z M -10.3071 -6.9851 L -9.2323 -10.3244 L -3.8659 -21.4785 L -1.9241 -22.0287 L 1.649 0.0 L -11.6649 0.0 L -11.4579 -1.0648 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -5.1385 -49.4112 L -2.2049 -49.9399 L -1.132 -49.5313 L -1.3977 -42.8864 L -0.7606 -40.313 L -2.0379 -36.6522 L -3.2194 -34.8449 L -3.4719 -34.8557 L -6.474 -40.4337 L -6.4478 -42.9049 L -5.1385 -49.4112 M -2.2148 -21.5722 L 1.2259 -0.36 L -11.2282 -0.36 L -9.9578 -6.8953 L -8.8972 -10.1906 L -3.6118 -21.1763 L -2.2148 -21.5722' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:16.0' inkscape:groupmode='layer' inkscape:label='Layer 34, z:16.0' transform='translate(280.0, 10951.7064)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate16.0' fill='#000' stroke='none' y='15' >Layer 34, z:16.0</text>
+			<path d='M -5.6582 -49.9195 L -2.2313 -50.5371 L -1.0572 -50.09 L -1.3545 -42.6551 L -0.8989 -40.8147 L -2.4106 -36.482 L -3.4203 -34.9376 L -4.0829 -34.9653 L -7.1105 -40.5687 L -7.0865 -42.8211 z M -10.1209 -10.2389 L -8.5455 -15.1338 L -4.1674 -24.2336 L -1.9766 -24.8543 L 2.0548 0.0 L -12.1113 -0.0 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -5.3535 -49.6086 L -2.2659 -50.1651 L -1.4273 -49.8457 L -1.7163 -42.6183 L -1.2741 -40.8322 L -2.736 -36.6422 L -3.6097 -35.3058 L -3.8635 -35.3164 L -6.7495 -40.6579 L -6.7269 -42.7833 L -5.3535 -49.6086 M -2.2673 -24.3978 L 1.6317 -0.36 L -11.6746 -0.36 L -9.7716 -10.1491 L -8.2104 -15.0 L -3.9133 -23.9314 L -2.2673 -24.3978' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:16.4' inkscape:groupmode='layer' inkscape:label='Layer 35, z:16.4' transform='translate(280.0, 11263.5409)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate16.4' fill='#000' stroke='none' y='15' >Layer 35, z:16.4</text>
+			<path d='M -5.8732 -50.117 L -2.2923 -50.7623 L -1.3525 -50.4044 L -1.6731 -42.3871 L -1.4124 -41.3339 L -3.1088 -36.472 L -3.8105 -35.3988 L -4.4741 -35.426 L -7.386 -40.7925 L -7.3657 -42.6996 z M -9.9348 -13.4927 L -7.8587 -19.9431 L -4.469 -26.9887 L -2.0291 -27.68 L 2.4607 0.0 L -12.5577 -0.0 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -5.5685 -49.8061 L -2.3269 -50.3903 L -1.7226 -50.1601 L -2.0349 -42.3503 L -1.7876 -41.3514 L -3.4342 -36.6322 L -4.0 -35.7668 L -4.2552 -35.7773 L -7.025 -40.8821 L -7.0061 -42.6618 L -5.5685 -49.8061 M -2.3198 -27.2235 L 2.0376 -0.36 L -12.121 -0.36 L -9.5855 -13.4029 L -7.5236 -19.8093 L -4.2149 -26.6865 L -2.3198 -27.2235' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:16.8' inkscape:groupmode='layer' inkscape:label='Layer 36, z:16.8' transform='translate(280.0, 11575.3754)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate16.8' fill='#000' stroke='none' y='15' >Layer 36, z:16.8</text>
+			<path d='M -6.0881 -50.3144 L -2.3533 -50.9875 L -1.6478 -50.7188 L -1.9917 -42.119 L -1.9259 -41.8532 L -3.8069 -36.4621 L -4.2006 -35.8599 L -4.8653 -35.8865 L -7.6615 -41.0164 L -7.6449 -42.5781 z M -9.7487 -16.7464 L -7.1719 -24.7524 L -4.7705 -29.7438 L -2.0816 -30.5056 L 2.8665 0.0 L -13.004 -0.0 L -12.797 -1.0648 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -5.7834 -50.0035 L -2.3879 -50.6155 L -2.0179 -50.4745 L -2.3535 -42.0822 L -2.3011 -41.8707 L -4.1323 -36.6223 L -4.3902 -36.2277 L -4.6469 -36.238 L -7.3005 -41.1063 L -7.2853 -42.5403 L -5.7834 -50.0035 M -2.3723 -30.0491 L 2.4434 -0.36 L -12.5673 -0.36 L -9.3994 -16.6566 L -6.8368 -24.6186 L -4.5164 -29.4416 L -2.3723 -30.0491' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:17.2' inkscape:groupmode='layer' inkscape:label='Layer 37, z:17.2' transform='translate(280.0, 11887.2099)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate17.2' fill='#000' stroke='none' y='15' >Layer 37, z:17.2</text>
+			<path d='M -1.8305 -31.4596 L 3.0002 -1.6782 L 3.4 -0.005 L -13.4503 -0.0004 L -9.5626 -20.0002 L -6.4851 -29.5618 L -5.0721 -32.4988 L -3.177 -33.0357 L -3.177 -39.5379 L -3.2396 -39.6867 L -3.3063 -39.698 L -3.4149 -39.5776 L -4.6495 -36.0824 L -5.2567 -36.3469 L -7.937 -41.2402 L -7.924 -42.4565 L -6.3031 -50.5118 L -2.4143 -51.2126 L -1.9431 -51.0332 L -2.2077 -44.4164 L -1.9984 -42.6435 L -1.8305 -42.0285 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -5.9984 -50.2009 L -2.4489 -50.8406 L -2.3132 -50.7889 L -2.5685 -44.4024 L -2.3528 -42.5746 L -2.1905 -41.9802 L -2.1905 -31.4306 L 2.6473 -1.6054 L 2.964 -0.3453 L -13.0137 -0.36 L -9.2133 -19.9104 L -6.15 -29.428 L -4.818 -32.1966 L -2.817 -32.7635 L -2.817 -39.6105 L -2.9844 -40.0086 L -3.4411 -40.086 L -3.7304 -39.7653 L -4.8602 -36.5668 L -5.0001 -36.6278 L -7.576 -41.3305 L -7.5644 -42.4187 L -5.9984 -50.2009' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:17.6' inkscape:groupmode='layer' inkscape:label='Layer 38, z:17.6' transform='translate(280.0, 12199.0443)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate17.6' fill='#000' stroke='none' y='15' >Layer 38, z:17.6</text>
+			<path d='M -1.4246 -31.4596 L 2.783 -5.519 L 4.1031 -0.0012 L -13.8967 -0.0004 L -9.3765 -23.254 L -5.7984 -34.3711 L -5.3736 -35.2539 L -4.804 -35.4153 L -4.804 -36.8657 L -4.8872 -37.0635 L -4.9685 -37.0987 L -5.1054 -36.9816 L -5.6481 -36.8073 L -8.2124 -41.464 L -8.2032 -42.335 L -6.5181 -50.7092 L -2.2409 -51.4725 L -2.3714 -48.0214 L -1.8461 -43.5719 L -1.4246 -42.0285 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -6.2134 -50.3983 L -2.6107 -51.0476 L -2.7322 -48.0074 L -2.2005 -43.503 L -1.7846 -41.9802 L -1.7846 -31.4306 L 2.4299 -5.4477 L 3.6662 -0.3453 L -13.4601 -0.36 L -9.0272 -23.1642 L -5.4633 -34.2373 L -5.1195 -34.9517 L -4.444 -35.1431 L -4.444 -36.9383 L -4.6114 -37.3364 L -5.0316 -37.5184 L -5.2844 -37.3022 L -5.4758 -37.2407 L -7.8514 -41.5548 L -7.8436 -42.2973 L -6.2134 -50.3983' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:18.0' inkscape:groupmode='layer' inkscape:label='Layer 39, z:18.0' transform='translate(280.0, 12510.8788)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate18.0' fill='#000' stroke='none' y='15' >Layer 39, z:18.0</text>
+			<path d='M -2.789 -59.8895 L -2.1707 -59.6955 L -2.2689 -58.9829 L -2.8207 -59.1229 L -3.1397 -58.9671 L -3.3344 -59.0864 L -4.0724 -58.9438 L -4.0673 -59.7333 z M -9.1904 -26.5078 L -6.431 -35.0809 L -6.431 -37.9617 L -8.4879 -41.6879 L -8.4823 -42.2135 L -6.7331 -50.9067 L -2.5337 -51.662 L -1.6939 -44.5004 L -1.0188 -42.0285 L -1.0188 -31.4596 L 2.5657 -9.3612 L 4.8055 -0.0007 L -14.3431 -0.0004 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -2.8467 -51.2399 L -2.0483 -44.4316 L -1.3788 -41.9802 L -1.3788 -31.4306 L 2.2125 -9.2901 L 4.3684 -0.3453 L -13.9065 -0.36 L -8.8411 -26.418 L -6.071 -35.0244 L -6.071 -38.0545 L -8.1269 -41.7789 L -8.1227 -42.1757 L -6.4285 -50.5957 L -2.8467 -51.2399' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:18.4' inkscape:groupmode='layer' inkscape:label='Layer 40, z:18.4' transform='translate(280.0, 12822.7133)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate18.4' fill='#000' stroke='none' y='15' >Layer 40, z:18.4</text>
+			<path d='M -5.9075 -58.9958 L -5.8969 -59.7022 L -2.8324 -60.0767 L -1.6321 -59.6999 L -1.6293 -58.9941 L -2.8498 -59.085 z M -8.0581 -40.634 L -8.7634 -41.9117 L -6.948 -51.1041 L -3.8319 -51.6656 L -2.2908 -51.7748 L -1.5416 -45.4288 L -0.6129 -42.0285 L -0.6129 -31.4596 L 2.3483 -13.2034 L 5.5077 -0.0005 L -14.7895 -0.0003 L -9.0043 -29.7616 L -8.0581 -32.7014 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -2.6081 -51.3914 L -1.896 -45.3599 L -0.9729 -41.9802 L -0.9729 -31.4306 L 1.9951 -13.1324 L 5.0706 -0.3453 L -14.3529 -0.36 L -8.655 -29.6718 L -7.6981 -32.6449 L -7.6981 -40.7268 L -8.3848 -41.9707 L -6.6424 -50.7934 L -3.7871 -51.3079 L -2.6081 -51.3914' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:18.8' inkscape:groupmode='layer' inkscape:label='Layer 41, z:18.8' transform='translate(280.0, 13134.5477)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate18.8' fill='#000' stroke='none' y='15' >Layer 41, z:18.8</text>
+			<path d='M -6.6029 -59.0215 L -7.3028 -59.3593 L -6.6618 -59.7988 L -2.876 -60.2639 L -1.1357 -59.7011 L -1.1391 -58.9948 L -2.8958 -59.1296 z M -9.1206 -31.4596 L -9.1206 -42.0285 L -7.163 -51.3015 L -5.1437 -51.6654 L -2.6416 -51.8609 L -2.016 -51.6654 L -1.3893 -46.3573 L -0.2071 -42.0285 L -0.2071 -31.4596 L 2.1309 -17.0457 L 6.21 -0.0004 L -15.2359 -0.0003 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -2.6827 -51.4966 L -2.3462 -51.3914 L -1.7437 -46.2884 L -0.5671 -41.9802 L -0.5671 -31.4306 L 1.7777 -16.9747 L 5.7728 -0.3453 L -14.7993 -0.36 L -8.7606 -31.4249 L -8.7606 -41.9909 L -6.8608 -50.9902 L -5.0976 -51.3079 L -2.6827 -51.4966' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:19.2' inkscape:groupmode='layer' inkscape:label='Layer 42, z:19.2' transform='translate(280.0, 13446.3822)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate19.2' fill='#000' stroke='none' y='15' >Layer 42, z:19.2</text>
+			<path d='M -7.1738 -59.0376 L -7.3942 -59.1441 L -8.0051 -59.009 L -8.0822 -59.6544 L -7.3762 -59.9351 L -7.1199 -59.8113 L -6.8708 -59.9683 L -2.9193 -60.4511 L -1.2905 -59.9117 L -0.6824 -59.3448 L -1.4628 -59.0581 L -2.9411 -59.1743 L -3.5689 -59.154 z M -9.567 -31.4596 L -9.567 -42.0285 L -9.1188 -43.4407 L -7.3732 -51.5211 L -2.6971 -51.9601 L -1.7541 -51.6654 L -1.2371 -47.2857 L 0.1988 -42.0285 L 0.1988 -31.4596 L 1.9135 -20.8879 L 6.9122 -0.0003 L -15.6823 -0.0003 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -7.1791 -50.7148 L -7.077 -51.1874 L -2.7354 -51.5949 L -2.0843 -51.3914 L -1.5915 -47.2168 L -0.1612 -41.9802 L -0.1612 -31.4306 L 1.5603 -20.817 L 6.475 -0.3453 L -15.2457 -0.36 L -9.207 -31.4249 L -9.207 -41.9727 L -8.7705 -43.348 L -7.1791 -50.7148' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:19.6' inkscape:groupmode='layer' inkscape:label='Layer 43, z:19.6' transform='translate(280.0, 13758.2167)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate19.6' fill='#000' stroke='none' y='15' >Layer 43, z:19.6</text>
+			<path d='M -8.5145 -59.0044 L -8.4809 -59.6511 L -7.3448 -60.1028 L -2.9627 -60.6383 L 0.1037 -59.6761 L 0.0881 -58.9725 L -2.9859 -59.2188 z M -15.4903 -3.2846 L -10.0133 -31.4596 L -10.0133 -42.0285 L -9.2619 -44.396 L -7.6156 -51.6654 L -2.7469 -52.0575 L -1.4922 -51.6654 L -1.0848 -48.2142 L 0.6046 -42.0285 L 0.6046 -31.4596 L 1.6961 -24.7302 L 6.8287 -3.2847 L 7.2661 0.0 L -15.8165 0.0 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -8.1334 -59.4019 L -7.255 -59.7511 L -2.9963 -60.2715 L -0.2622 -59.4136 L -0.2634 -59.3618 L -2.9784 -59.5793 L -8.1345 -59.3794 L -8.1334 -59.4019 M -7.4301 -50.8547 L -7.3229 -51.3278 L -2.7876 -51.6931 L -1.8224 -51.3914 L -1.4392 -48.1453 L 0.2446 -41.9802 L 0.2446 -31.4306 L 1.3429 -24.6594 L 6.4743 -3.2189 L 6.855 -0.36 L -15.419 -0.36 L -15.1337 -3.2324 L -9.6533 -31.4249 L -9.6533 -41.9727 L -8.9142 -44.3016 L -7.4301 -50.8547' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:20.0' inkscape:groupmode='layer' inkscape:label='Layer 44, z:20.0' transform='translate(280.0, 14070.0512)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate20.0' fill='#000' stroke='none' y='15' >Layer 44, z:20.0</text>
+			<path d='M -8.5204 -59.0302 L -8.8762 -59.6492 L -7.2095 -60.3119 L -3.0062 -60.8255 L 0.5283 -59.7165 L 0.5574 -58.9712 L -3.0312 -59.2633 z M -15.0239 -7.9802 L -10.4597 -31.4596 L -10.4597 -42.0285 L -9.4051 -45.3514 L -7.9751 -51.6654 L -7.3975 -51.7965 L -2.7995 -52.1558 L -1.2303 -51.6654 L -0.9325 -49.1426 L 1.0104 -42.0285 L 1.0104 -31.4596 L 1.4787 -28.5725 L 6.4071 -7.9802 L 7.4697 0.0 L -15.8165 -0.0 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -8.357 -59.4682 L -7.1197 -59.9602 L -3.0398 -60.4587 L 0.1785 -59.449 L 0.1818 -59.363 L -3.0242 -59.6239 L -8.3173 -59.3992 L -8.357 -59.4682 M -7.3434 -51.4396 L -2.8406 -51.7915 L -1.5605 -51.3914 L -1.2869 -49.0737 L 0.6504 -41.9802 L 0.6504 -31.4306 L 1.1255 -28.5017 L 6.0527 -7.9144 L 7.0586 -0.36 L -15.419 -0.36 L -14.6673 -7.9279 L -10.0997 -31.4249 L -10.0997 -41.9727 L -9.0574 -45.257 L -7.6741 -51.3646 L -7.3434 -51.4396' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:20.4' inkscape:groupmode='layer' inkscape:label='Layer 45, z:20.4' transform='translate(280.0, 14381.8856)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate20.4' fill='#000' stroke='none' y='15' >Layer 45, z:20.4</text>
+			<path d='M -8.9791 -59.0234 L -9.27 -59.6479 L -7.0742 -60.5209 L -3.0481 -61.0129 L 0.3582 -59.9138 L 1.2938 -59.4575 L 0.9532 -58.9754 L -3.0761 -59.3078 L -3.6998 -59.2778 z M -14.5575 -12.6757 L -10.9061 -31.4596 L -10.9061 -42.0285 L -9.5483 -46.3068 L -8.3347 -51.6654 L -7.2577 -51.9098 L -2.8522 -52.2541 L -0.9685 -51.6654 L -0.7802 -50.071 L 1.2799 -42.4375 L 1.49 -42.0285 L 1.49 -31.4596 L 5.9855 -12.6758 L 7.6733 0.0 L -15.8165 0.0 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -8.7826 -59.4542 L -6.9844 -60.1692 L -3.0832 -60.6459 L 0.8644 -59.3722 L 0.834 -59.3464 L -3.0699 -59.6685 L -8.7549 -59.3947 L -8.7826 -59.4542 M -7.628 -51.4566 L -7.2036 -51.5529 L -2.8933 -51.8898 L -1.2986 -51.3914 L -1.1346 -50.0026 L 0.9423 -42.3069 L 1.13 -41.9414 L 1.13 -31.4171 L 5.6311 -12.61 L 7.2622 -0.36 L -15.419 -0.36 L -14.2009 -12.6234 L -10.5461 -31.4249 L -10.5461 -41.9727 L -9.2006 -46.2124 L -8.0337 -51.3645 L -7.628 -51.4566' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:20.8' inkscape:groupmode='layer' inkscape:label='Layer 46, z:20.8' transform='translate(280.0, 14693.7201)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate20.8' fill='#000' stroke='none' y='15' >Layer 46, z:20.8</text>
+			<path d='M -6.965 -59.2407 L -9.4106 -59.0078 L -9.6628 -59.6469 L -6.9389 -60.73 L -3.09 -61.2003 L 1.1634 -59.7875 L 1.4608 -59.508 L 1.2077 -58.991 L -3.1255 -59.3527 z M -14.0911 -17.3712 L -11.3525 -31.4596 L -11.3525 -42.0285 L -9.6914 -47.2621 L -8.6942 -51.6654 L -7.1179 -52.0232 L -2.9048 -52.3524 L -0.7066 -51.6654 L -0.628 -50.9995 L 1.1371 -44.0827 L 2.1922 -42.0285 L 2.1922 -31.4596 L 5.5639 -17.3713 L 7.877 0.0 L -15.8165 0.0 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -9.1961 -59.4451 L -6.8491 -60.3783 L -3.1267 -60.8331 L 1.1056 -59.4273 L 1.2052 -59.4276 L 1.1086 -59.3606 L -3.1157 -59.7131 L -6.9873 -59.6002 L -9.1751 -59.3918 L -9.1961 -59.4451 M -7.4124 -51.5872 L -7.0637 -51.6663 L -2.9459 -51.9881 L -1.0368 -51.3914 L -0.9827 -50.9336 L 0.7983 -43.9543 L 1.8322 -41.9415 L 1.8322 -31.4171 L 5.2095 -17.3055 L 7.4659 -0.36 L -15.419 -0.36 L -13.7345 -17.3189 L -10.9925 -31.4249 L -10.9925 -41.9727 L -9.3437 -47.1677 L -8.3932 -51.3646 L -7.4124 -51.5872' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:21.2' inkscape:groupmode='layer' inkscape:label='Layer 47, z:21.2' transform='translate(280.0, 15005.5546)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate21.2' fill='#000' stroke='none' y='15' >Layer 47, z:21.2</text>
+			<path d='M -6.8325 -59.2905 L -9.7491 -59.0048 L -10.1166 -59.6217 L -6.8035 -60.939 L -3.5583 -61.3356 L -3.1581 -61.4496 L -2.9723 -61.3356 L -0.053 -60.4196 L 2.0638 -59.5971 L 1.7167 -58.9833 L -3.1714 -59.3973 z M -13.6247 -22.0668 L -11.7989 -31.4596 L -11.7989 -42.0285 L -9.8346 -48.2175 L -9.0537 -51.6654 L -6.978 -52.1365 L -2.9574 -52.4507 L -0.4463 -51.6654 L 0.9943 -45.7279 L 2.8944 -42.0285 L 2.8944 -31.4596 L 5.1424 -22.0669 L 8.0806 -0.0 L -15.8165 -0.0 L -15.7132 -1.0404 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -9.5912 -59.4432 L -6.7137 -60.5873 L -3.2116 -61.06 L 1.5457 -59.4122 L 1.517 -59.3615 L -3.1614 -59.7577 L -6.8553 -59.65 L -9.5568 -59.3854 L -9.5912 -59.4432 M -7.8064 -51.5793 L -6.9239 -51.7796 L -2.9986 -52.0864 L -0.7481 -51.3826 L 0.6545 -45.6015 L 2.5344 -41.9415 L 2.5344 -31.4171 L 4.788 -22.0011 L 7.6695 -0.36 L -15.419 -0.36 L -13.2681 -22.0145 L -11.4389 -31.4249 L -11.4389 -41.9727 L -9.4869 -48.1231 L -8.7527 -51.3646 L -7.8064 -51.5793' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:21.6' inkscape:groupmode='layer' inkscape:label='Layer 48, z:21.6' transform='translate(280.0, 15317.389)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate21.6' fill='#000' stroke='none' y='15' >Layer 48, z:21.6</text>
+			<path d='M -6.6999 -59.3404 L -10.017 -59.0389 L -10.1949 -58.9598 L -10.497 -59.382 L -10.189 -59.7482 L -6.6682 -61.1481 L -5.1338 -61.3356 L -3.2799 -61.8635 L -2.419 -61.3356 L -0.2468 -60.654 L 2.565 -59.5697 L 2.4255 -58.9408 L -3.2174 -59.4419 z M -13.1584 -26.7623 L -12.2453 -31.4596 L -12.2453 -42.0285 L -9.9778 -49.1729 L -9.4133 -51.6654 L -6.8382 -52.2499 L -3.0101 -52.549 L -0.1899 -51.6654 L 0.8514 -47.3731 L 3.5966 -42.0285 L 3.5966 -31.4596 L 4.7208 -26.7624 L 8.2842 0.0 L -15.8165 -0.0 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -10.3116 -59.3683 L -6.5784 -60.7964 L -5.0622 -60.9817 L -3.3333 -61.474 L -2.5692 -61.0054 L -0.3656 -60.314 L 2.1465 -59.3453 L 2.1425 -59.3274 L -3.2067 -59.8024 L -6.7235 -59.6999 L -10.097 -59.3974 L -10.2211 -59.3421 L -10.3116 -59.3683 M -3.0514 -52.1847 L -0.4918 -51.3827 L 0.5116 -47.2467 L 3.2366 -41.9415 L 3.2366 -31.4171 L 4.3664 -26.6966 L 7.8731 -0.36 L -15.419 -0.36 L -12.8018 -26.71 L -11.8853 -31.4249 L -11.8853 -41.9727 L -9.6301 -49.0785 L -9.1123 -51.3646 L -6.7841 -51.893 L -3.0514 -52.1847' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:22.0' inkscape:groupmode='layer' inkscape:label='Layer 49, z:22.0' transform='translate(280.0, 15629.2235)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate22.0' fill='#000' stroke='none' y='15' >Layer 49, z:22.0</text>
+			<path d='M -6.5674 -59.3902 L -10.0134 -59.0242 L -10.8146 -59.2845 L -10.2268 -59.8878 L -6.5871 -61.3356 L -6.5414 -61.3767 L -3.4017 -62.2775 L -2.899 -62.0253 L -1.8658 -61.3356 L 2.7158 -59.6593 L 2.5281 -58.9497 L -3.2633 -59.4865 z M -12.6916 -31.4596 L -12.6916 -42.0285 L -10.1209 -50.1282 L -9.7728 -51.6654 L -6.6984 -52.3632 L -3.0627 -52.6473 L 0.0664 -51.6654 L 0.7086 -49.0183 L 4.2988 -42.0285 L 4.2988 -31.4596 L 8.4879 0.0 L -15.8165 0.0 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -10.0934 -59.5556 L -6.3624 -61.0535 L -3.4375 -61.8927 L -2.0299 -61.0123 L 2.2838 -59.434 L 2.258 -59.3363 L -3.2519 -59.847 L -6.5917 -59.7496 L -10.6958 -59.3138 L -10.0934 -59.5556 M -5.5314 -52.0933 L -3.1041 -52.283 L -0.2355 -51.3828 L 0.3688 -48.8919 L 3.9388 -41.9415 L 3.9388 -31.4357 L 8.0768 -0.36 L -15.419 -0.36 L -12.3316 -31.4418 L -12.3316 -41.9727 L -9.7732 -50.0338 L -9.4718 -51.3646 L -6.6443 -52.0063 L -5.5314 -52.0933' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:22.4' inkscape:groupmode='layer' inkscape:label='Layer 50, z:22.4' transform='translate(280.0, 15941.058)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate22.4' fill='#000' stroke='none' y='15' >Layer 50, z:22.4</text>
+			<path d='M -6.4349 -59.44 L -11.2541 -58.911 L -11.2221 -59.5363 L -10.666 -59.869 L -6.9775 -61.3356 L -6.4891 -61.7754 L -3.5234 -62.6915 L -2.7999 -62.3285 L -1.3126 -61.3356 L 2.9272 -59.7494 L 3.0099 -59.2835 L 2.7064 -59.0442 L 2.3816 -58.9825 L -3.3093 -59.5312 z M -12.6918 -31.4596 L -12.8138 -32.5549 L -12.8138 -42.0285 L -10.1324 -51.6654 L -6.5586 -52.4765 L -3.1153 -52.7456 L 0.3227 -51.6654 L 0.5658 -50.6635 L 1.925 -48.0172 L 4.5026 -42.0285 L 4.5026 -31.4596 L 8.6915 0.0 L -15.8165 0.0 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -6.3071 -61.4548 L -3.5555 -62.3048 L -2.9813 -62.0167 L -1.4778 -61.013 L 2.7719 -59.4231 L 3.0099 -59.2835 L 2.3649 -59.3457 L -3.2972 -59.8917 L -6.4598 -59.7994 L -10.8729 -59.315 L -10.8724 -59.326 L -10.506 -59.5452 L -6.7845 -61.0249 L -6.3071 -61.4548 M -5.5832 -52.1916 L -3.1567 -52.3813 L 0.0208 -51.3829 L 0.226 -50.5371 L 1.5992 -47.8636 L 4.1426 -41.9543 L 4.1426 -31.4357 L 8.2804 -0.36 L -15.419 -0.36 L -12.3298 -31.4618 L -12.4538 -32.5749 L -12.4538 -41.9793 L -9.8432 -51.3619 L -6.5045 -52.1196 L -5.5832 -52.1916' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:22.8' inkscape:groupmode='layer' inkscape:label='Layer 51, z:22.8' transform='translate(280.0, 16252.8924)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate22.8' fill='#000' stroke='none' y='15' >Layer 51, z:22.8</text>
+			<path d='M -6.3015 -59.4898 L -10.9524 -59.0265 L -11.2523 -59.5974 L -10.2869 -60.175 L -7.368 -61.3356 L -6.8398 -61.7572 L -6.4367 -62.174 L -5.0814 -62.6964 L -3.6452 -63.1054 L -2.7007 -62.6316 L -0.7722 -61.3356 L 2.5301 -60.0622 L 3.0705 -59.7453 L 3.1721 -59.0312 L -3.3559 -59.5758 z M 4.7062 -42.0285 L 4.7062 -31.4596 L 8.8951 0.0 L -15.8165 0.0 L -12.6918 -31.4596 L -12.9359 -33.6506 L -12.9359 -42.0285 L -10.3947 -51.6654 L -6.4187 -52.5899 L -4.7343 -52.7215 L -4.0883 -52.4285 L -4.0883 -52.085 L -3.1715 -52.1212 L -3.018 -52.1014 L -2.738 -52.4651 L -2.2723 -52.5771 L 0.4903 -51.7058 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -5.794 -59.8648 L -6.3246 -59.8493 L -10.7466 -59.4088 L -10.7752 -59.4633 L -10.1269 -59.8512 L -7.1853 -61.0208 L -6.5971 -61.4903 L -6.2331 -61.8666 L -4.9671 -62.3546 L -3.6814 -62.7208 L -2.8825 -62.3201 L -0.9394 -61.0143 L 2.3732 -59.7368 L 2.7467 -59.5178 L 2.7693 -59.3969 L -3.3453 -59.9362 L -5.794 -59.8648 M -5.1702 -52.3264 L -4.7987 -52.3554 L -4.4483 -52.1965 L -4.4483 -51.7105 L -3.1875 -51.7603 L -2.8589 -51.718 L -2.5303 -52.1448 L -2.2853 -52.2037 L 0.2257 -51.4118 L 4.3462 -41.9535 L 4.3462 -31.4357 L 8.484 -0.36 L -15.419 -0.36 L -12.3298 -31.4618 L -12.5759 -33.6706 L -12.5759 -41.9818 L -10.1019 -51.3639 L -6.3636 -52.2331 L -5.1702 -52.3264' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:23.2' inkscape:groupmode='layer' inkscape:label='Layer 52, z:23.2' transform='translate(280.0, 16564.7269)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate23.2' fill='#000' stroke='none' y='15' >Layer 52, z:23.2</text>
+			<path d='M -6.1698 -59.5396 L -10.862 -58.995 L -11.2647 -59.1436 L -11.263 -59.6701 L -9.9079 -60.481 L -7.7585 -61.3356 L -6.9791 -61.9577 L -6.3844 -62.5727 L -3.767 -63.5194 L -2.6016 -62.9348 L -0.8399 -61.7432 L -0.3582 -61.3356 L 2.1329 -60.375 L 2.889 -59.9316 L 3.4472 -59.2338 L 2.5842 -59.0018 L -3.4011 -59.6204 z M 1.5637 -49.803 L 4.9098 -42.0285 L 4.9098 -31.4596 L 9.0988 0.0 L -15.8165 0.0 L -12.6918 -31.4596 L -13.058 -34.7463 L -13.058 -42.0285 L -10.5058 -51.6654 L -9.8447 -51.8939 L -6.2789 -52.7032 L -5.8388 -52.7376 L -5.3987 -52.4285 L -5.3987 -52.085 L -3.229 -52.1707 L -2.8263 -52.1189 L -2.363 -52.4773 L -1.9448 -52.579 L 0.2512 -51.8939 L 0.5822 -51.6654 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -7.0153 -61.4682 L -6.7364 -61.6908 L -6.1836 -62.2625 L -3.7901 -63.1282 L -2.7839 -62.6235 L -1.0576 -61.4559 L -0.5444 -61.0216 L 1.976 -60.0496 L 3.2658 -59.2932 L -3.3878 -59.9809 L -6.1959 -59.899 L -10.9788 -59.3439 L -11.144 -59.2469 L -11.0242 -59.3935 L -9.7479 -60.1572 L -7.5758 -61.0208 L -7.0153 -61.4682 M -1.9567 -52.2056 L 0.0917 -51.5665 L 0.3049 -51.4194 L 1.2386 -49.6477 L 4.5498 -41.9543 L 4.5498 -31.4357 L 8.6877 -0.36 L -15.419 -0.36 L -12.3298 -31.4618 L -12.698 -34.7663 L -12.698 -41.9816 L -10.2069 -51.3878 L -9.7458 -51.5472 L -6.2247 -52.3463 L -5.9398 -52.3686 L -5.7587 -52.2414 L -5.7587 -51.7105 L -3.245 -51.8098 L -2.7242 -51.7427 L -2.2034 -52.1456 L -1.9567 -52.2056' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:23.6' inkscape:groupmode='layer' inkscape:label='Layer 53, z:23.6' transform='translate(280.0, 16876.5614)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate23.6' fill='#000' stroke='none' y='15' >Layer 53, z:23.6</text>
+			<path d='M -6.0349 -59.5895 L -11.2269 -59.0244 L -11.4352 -59.6462 L -9.5288 -60.7869 L -8.1489 -61.3356 L -7.1184 -62.1582 L -6.3321 -62.9714 L -4.2419 -63.777 L -3.7244 -63.8509 L -2.5025 -63.2379 L -0.867 -62.1165 L 0.0558 -61.3356 L 1.7358 -60.6878 L 3.3771 -59.7252 L 3.3647 -59.0148 L -3.4491 -59.6649 z M 2.3436 -48.464 L 5.1135 -42.0285 L 5.1135 -31.4596 L 9.3024 -0.0 L -15.8165 0.0 L -12.6918 -31.4596 L -13.1801 -35.842 L -13.1801 -42.0285 L -10.6169 -51.6654 L -9.4804 -52.0582 L -6.9673 -52.6286 L -6.3354 -52.4285 L -6.3354 -52.085 L -3.2865 -52.2202 L -2.2365 -52.085 L -2.2365 -52.4285 L -1.6171 -52.5817 L 0.0875 -52.0582 L 0.6566 -51.6654 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -7.6473 -61.2753 L -6.8757 -61.8913 L -6.1285 -62.6641 L -4.1506 -63.4264 L -3.7851 -63.4786 L -2.6859 -62.9271 L -1.0856 -61.8299 L -0.1304 -61.0216 L 1.5789 -60.3624 L 3.0135 -59.5211 L 3.0115 -59.4102 L -3.4372 -60.0254 L -6.0596 -59.9489 L -10.9776 -59.4136 L -11.0019 -59.486 L -9.3688 -60.4631 L -7.9661 -61.0209 L -7.6473 -61.2753 M -6.6954 -51.7087 L -3.3016 -51.8592 L -1.8765 -51.6757 L -1.8765 -52.1467 L -1.6274 -52.2083 L -0.0713 -51.7304 L 0.3793 -51.4193 L 2.0185 -48.3087 L 4.7535 -41.9543 L 4.7535 -31.4357 L 8.8913 -0.36 L -15.419 -0.36 L -12.3298 -31.4618 L -12.8201 -35.862 L -12.8201 -41.9814 L -10.3182 -51.3877 L -9.3815 -51.7115 L -6.9829 -52.2559 L -6.6954 -52.1649 L -6.6954 -51.7087' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:24.0' inkscape:groupmode='layer' inkscape:label='Layer 54, z:24.0' transform='translate(280.0, 17188.3959)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate24.0' fill='#000' stroke='none' y='15' >Layer 54, z:24.0</text>
+			<path d='M -5.9013 -59.6394 L -10.628 -59.0954 L -11.4926 -59.3181 L -10.9418 -60.0206 L -9.1498 -61.0929 L -8.5394 -61.3356 L -7.2578 -62.3587 L -6.2797 -63.37 L -5.8015 -63.5544 L -4.1766 -64.8869 L -3.182 -63.9316 L -2.4033 -63.541 L -0.8941 -62.4898 L 0.4699 -61.3356 L 1.3387 -61.0006 L 3.5185 -59.7222 L 3.2381 -59.0439 L -3.4956 -59.7095 z M 3.1235 -47.1251 L 5.3171 -42.0285 L 5.3171 -31.4596 L 9.506 0.0 L -15.8165 0.0 L -12.6918 -31.4596 L -13.3022 -36.9377 L -13.3022 -42.0285 L -10.7279 -51.6654 L -9.1162 -52.2224 L -7.3268 -52.6286 L -6.6949 -52.4285 L -6.6949 -52.085 L -3.3439 -52.2697 L -1.9097 -52.085 L -1.9097 -52.4285 L -1.289 -52.5859 L -0.0761 -52.2224 L 0.7309 -51.6654 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -10.757 -59.7117 L -8.9898 -60.7691 L -8.3566 -61.0209 L -7.0151 -62.0918 L -6.0761 -63.0627 L -5.618 -63.2393 L -4.1955 -64.4059 L -3.3921 -63.6342 L -2.5878 -63.2308 L -1.1137 -62.2041 L 0.2837 -61.0216 L 1.1818 -60.6752 L 3.0661 -59.5702 L 3.0075 -59.4285 L -3.4831 -60.07 L -5.9271 -59.9988 L -11.313 -59.379 L -10.757 -59.7117 M -1.297 -52.2125 L -0.2339 -51.8939 L 0.4536 -51.4193 L 2.7984 -46.9698 L 4.9571 -41.9543 L 4.9571 -31.4357 L 9.0949 -0.36 L -15.419 -0.36 L -12.3298 -31.4618 L -12.9422 -36.9577 L -12.9422 -41.9812 L -10.4295 -51.3876 L -9.0173 -51.8757 L -7.3424 -52.2559 L -7.0549 -52.1649 L -7.0549 -51.7046 L -3.3571 -51.9084 L -1.5497 -51.6757 L -1.5497 -52.1484 L -1.297 -52.2125' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:24.4' inkscape:groupmode='layer' inkscape:label='Layer 55, z:24.4' transform='translate(280.0, 17500.2303)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate24.4' fill='#000' stroke='none' y='15' >Layer 55, z:24.4</text>
+			<path d='M -5.7686 -59.6892 L -11.2905 -59.051 L -11.5441 -59.7393 L -8.8764 -61.3356 L -8.7949 -61.4433 L -7.3971 -62.5592 L -6.5361 -63.4495 L -6.4326 -63.6476 L -6.311 -64.0262 L -4.4874 -65.7111 L -3.6416 -65.0431 L -2.6291 -64.0072 L -2.3042 -63.8442 L -0.9212 -62.8631 L 0.8839 -61.3356 L 3.6399 -59.7265 L 3.4169 -59.0361 L -3.5424 -59.7541 z M 3.9034 -45.7862 L 5.5207 -42.0285 L 5.5207 -31.4596 L 8.7716 -7.0448 L 9.4279 0.0 L -15.8165 0.0 L -12.6918 -31.4596 L -13.4243 -38.0334 L -13.4243 -42.0285 L -10.839 -51.6654 L -8.752 -52.3867 L -7.6864 -52.6286 L -7.0545 -52.4285 L -7.0545 -52.085 L -5.8444 -52.2237 L -3.4014 -52.3192 L -1.5804 -52.085 L -1.5804 -52.4285 L -0.9576 -52.593 L -0.2398 -52.3867 L 0.8052 -51.6654 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -11.1031 -59.5837 L -8.6315 -61.0626 L -8.535 -61.1901 L -7.1544 -62.2923 L -6.2411 -63.2367 L -6.0993 -63.5082 L -5.9972 -63.826 L -4.4691 -65.2379 L -3.8829 -64.7749 L -2.8444 -63.7125 L -2.4901 -63.5347 L -1.142 -62.5784 L 0.6753 -61.0405 L 3.2083 -59.5616 L 3.1639 -59.4241 L -3.5291 -60.1146 L -5.7945 -60.0486 L -11.0506 -59.4411 L -11.1031 -59.5837 M -0.9616 -52.2196 L -0.3958 -52.057 L 0.5279 -51.4193 L 3.5783 -45.6309 L 5.1607 -41.9543 L 5.1607 -31.4357 L 8.4138 -7.0043 L 9.0328 -0.36 L -15.419 -0.36 L -12.3298 -31.4618 L -13.0643 -38.0534 L -13.0643 -41.9811 L -10.5408 -51.3876 L -8.6531 -52.04 L -7.702 -52.2559 L -7.4145 -52.1649 L -7.4145 -51.6814 L -5.8168 -51.8645 L -3.4174 -51.9583 L -1.2204 -51.6757 L -1.2204 -52.1512 L -0.9616 -52.2196' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:24.8' inkscape:groupmode='layer' inkscape:label='Layer 56, z:24.8' transform='translate(280.0, 17812.0648)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate24.8' fill='#000' stroke='none' y='15' >Layer 56, z:24.8</text>
+			<path d='M -5.6397 -59.7389 L -10.9439 -59.0703 L -11.8066 -59.2861 L -11.2607 -59.9881 L -9.0087 -61.3356 L -8.5329 -61.9642 L -7.5364 -62.7597 L -6.9226 -63.3943 L -6.6721 -63.8742 L -6.3818 -64.7773 L -4.7736 -66.466 L -3.5448 -65.5826 L -2.1195 -64.0799 L -0.9483 -63.2364 L 0.4155 -62.0823 L 1.043 -61.3337 L 3.7862 -59.7249 L 3.5798 -59.0194 L 0.5064 -59.4543 L -3.5849 -59.7988 z M 4.6833 -44.4473 L 5.7244 -42.0285 L 5.7244 -31.4596 L 7.8169 -15.7439 L 9.2837 0.0 L -15.8165 0.0 L -12.6918 -31.4596 L -13.5463 -39.1291 L -13.5463 -42.0285 L -10.9493 -51.6684 L -7.9187 -52.67 L -7.414 -52.4285 L -7.414 -52.085 L -5.6983 -52.2817 L -3.4589 -52.3687 L -1.1725 -52.085 L -1.1725 -52.4285 L -0.788 -52.6615 L -0.4034 -52.551 L 0.8796 -51.6654 L 1.2229 -51.0139 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -8.5509 -61.3439 L -8.2731 -61.711 L -7.2937 -62.4928 L -6.6276 -63.1815 L -6.3388 -63.7348 L -6.0643 -64.5887 L -4.7291 -65.9907 L -3.7826 -65.3102 L -2.3574 -63.8076 L -1.1701 -62.9525 L 0.1594 -61.8274 L 0.8071 -61.0547 L 3.3618 -59.5564 L 3.3218 -59.4195 L 0.5468 -59.8122 L -3.575 -60.1592 L -5.6675 -60.0982 L -11.6319 -59.3464 L -8.7639 -61.0626 L -8.5509 -61.3439 M -4.7128 -51.9597 L -3.4742 -52.0078 L -0.8125 -51.6776 L -0.8125 -52.2257 L -0.7361 -52.272 L -0.5594 -52.2213 L 0.6023 -51.4194 L 4.3582 -44.292 L 5.3644 -41.9543 L 5.3644 -31.4357 L 7.4591 -15.7034 L 8.8886 -0.36 L -15.419 -0.36 L -12.3298 -31.4618 L -13.1863 -39.1491 L -13.1863 -41.9809 L -10.6521 -51.3875 L -7.9433 -52.2827 L -7.774 -52.2017 L -7.774 -51.6814 L -5.6708 -51.9225 L -4.7128 -51.9597' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:25.2' inkscape:groupmode='layer' inkscape:label='Layer 57, z:25.2' transform='translate(280.0, 18123.8993)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate25.2' fill='#000' stroke='none' y='15' >Layer 57, z:25.2</text>
+			<path d='M -5.5072 -59.7887 L -11.0682 -59.0762 L -11.9305 -59.2907 L -11.3854 -59.9926 L -9.141 -61.3356 L -8.2708 -62.4851 L -7.6757 -62.9601 L -7.3091 -63.3392 L -6.9116 -64.1007 L -6.4559 -65.5165 L -5.0983 -67.1679 L -4.3871 -66.7935 L -3.448 -66.122 L -1.7096 -64.1385 L -0.1205 -62.8862 L 1.1827 -61.3317 L 3.9258 -59.7229 L 3.7386 -59.0147 L 0.1051 -59.5288 L -3.6309 -59.8434 z M 5.4632 -43.1084 L 5.928 -42.0285 L 5.928 -31.4596 L 6.8623 -24.4431 L 9.1395 0.0 L -15.8436 0.0 L -12.6918 -31.4596 L -13.6684 -40.2248 L -13.6684 -42.0285 L -11.0612 -51.6654 L -8.3876 -52.5653 L -7.7735 -52.4285 L -7.7735 -52.085 L -5.5522 -52.3397 L -3.5163 -52.4182 L -1.0992 -52.1255 L -0.4576 -52.3943 L -0.0338 -52.3471 L 0.9539 -51.6654 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -5.38 -66.2583 L -5.0065 -66.7127 L -4.5765 -66.4864 L -3.6913 -65.8534 L -1.9585 -63.8763 L -0.3725 -62.6264 L 0.9468 -61.0527 L 3.5079 -59.5507 L 3.4723 -59.416 L 0.1455 -59.8867 L -3.621 -60.2038 L -5.5354 -60.148 L -11.7567 -59.3509 L -8.8962 -61.0626 L -8.011 -62.2319 L -7.433 -62.6932 L -7.0141 -63.1264 L -6.5783 -63.9613 L -6.1342 -65.3409 L -5.38 -66.2583 M -8.1335 -51.6814 L -5.5247 -51.9805 L -3.5311 -52.0574 L -1.0479 -51.7567 L -0.4046 -52.0262 L -0.1637 -51.9994 L 0.6766 -51.4193 L 5.1381 -42.9531 L 5.568 -41.9543 L 5.568 -31.4357 L 6.5045 -24.4026 L 8.7444 -0.36 L -15.4457 -0.36 L -12.3298 -31.4616 L -13.3084 -40.2448 L -13.3084 -41.9807 L -10.764 -51.3856 L -8.3679 -52.1921 L -8.1335 -52.1399 L -8.1335 -51.6814' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:25.6' inkscape:groupmode='layer' inkscape:label='Layer 58, z:25.6' transform='translate(280.0, 18435.7337)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate25.6' fill='#000' stroke='none' y='15' >Layer 58, z:25.6</text>
+			<path d='M -3.3196 -66.6193 L -1.2997 -64.197 L -0.6565 -63.6901 L 1.3223 -61.3297 L 4.0387 -59.7201 L 3.8619 -59.0093 L -0.2962 -59.6034 L -3.292 -59.8594 L -3.292 -58.0623 L -3.1598 -57.1203 L -3.1598 -55.7568 L -3.0454 -54.5258 L -4.6591 -54.6349 L -4.6591 -59.8594 L -11.2242 -59.0588 L -12.0876 -59.2771 L -11.5398 -59.9793 L -9.2733 -61.3356 L -8.0087 -63.006 L -7.6957 -63.284 L -7.1511 -64.3272 L -6.5431 -66.2098 L -5.4621 -67.6738 L -4.6045 -67.4452 z M -12.6918 -31.4596 L -13.7905 -41.3204 L -13.7905 -42.0285 L -11.1722 -51.6654 L -8.5829 -52.5603 L -8.1974 -52.4774 L -7.6091 -52.1291 L -5.4061 -52.3977 L -3.5738 -52.4677 L -0.575 -52.085 L -0.0417 -52.4039 L 1.0282 -51.6654 L 6.0643 -42.0285 L 6.0643 -31.4596 L 8.9952 0.0 L -15.9185 0.0 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -5.318 -67.2628 L -4.7517 -67.1119 L -3.5607 -66.3463 L -1.5521 -63.9375 L -0.9085 -63.4303 L 1.0859 -61.0513 L 3.6247 -59.547 L 3.591 -59.4116 L -0.2554 -59.9612 L -3.652 -60.2515 L -3.652 -58.0372 L -3.5198 -57.0952 L -3.5198 -55.7339 L -3.4269 -55.0051 L -3.3409 -54.7911 L -3.7027 -54.8931 L -4.2991 -54.9579 L -4.2991 -60.266 L -11.911 -59.3377 L -9.0285 -61.0626 L -7.7431 -62.7604 L -7.4072 -63.0588 L -6.8179 -64.1876 L -6.2186 -66.0432 L -5.318 -67.2628 M -0.0557 -51.9761 L 0.7504 -51.4197 L 5.7043 -41.9401 L 5.7043 -31.4429 L 8.6001 -0.36 L -15.5197 -0.36 L -12.3297 -31.4612 L -13.4305 -41.3404 L -13.4305 -41.9805 L -10.8747 -51.3873 L -8.5603 -52.1872 L -8.3304 -52.1377 L -7.6872 -51.7569 L -5.3774 -52.0385 L -3.5898 -52.1068 L -0.4971 -51.7121 L -0.0557 -51.9761' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:26.0' inkscape:groupmode='layer' inkscape:label='Layer 59, z:26.0' transform='translate(280.0, 18747.5682)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate26.0' fill='#000' stroke='none' y='15' >Layer 59, z:26.0</text>
+			<path d='M -1.3009 -64.7791 L -0.9767 -64.2425 L 1.4619 -61.3277 L 4.431 -59.5864 L 4.3953 -58.9097 L -2.4377 -59.837 L -2.7388 -59.602 L -2.5216 -57.0168 L -0.9497 -56.1323 L 0.9575 -54.3019 L 1.0946 -51.6889 L 5.5456 -42.9669 L 5.9201 -42.0285 L 5.9201 -31.4596 L 8.851 0.0 L -15.9933 -0.0 L -12.6918 -31.4596 L -13.8615 -42.0285 L -11.2833 -51.6654 L -8.694 -52.5603 L -8.0815 -52.5771 L -7.6777 -52.1554 L -5.26 -52.4556 L -3.6313 -52.5171 L -0.7656 -52.1437 L -0.5007 -52.3159 L -0.5018 -53.1843 L -2.2184 -54.243 L -2.7897 -54.2298 L -3.5802 -54.3973 L -3.711 -54.3604 L -5.546 -54.5686 L -5.546 -59.8594 L -11.3124 -59.091 L -12.1739 -59.3023 L -11.6311 -60.0039 L -9.4055 -61.3356 L -7.95 -63.2477 L -7.8141 -63.7424 L -7.3906 -64.5538 L -7.2525 -64.9833 L -7.01 -65.4987 L -6.8555 -66.0702 L -6.7675 -66.8464 L -5.8258 -68.1796 L -4.1384 -67.73 L -2.9373 -66.7784 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -5.6763 -67.7672 L -4.3033 -67.4014 L -3.1913 -66.5203 L -1.5957 -64.571 L -1.2705 -64.0327 L 1.2259 -61.0488 L 4.06 -59.3867 L 4.0564 -59.319 L -2.5396 -60.2141 L -3.1138 -59.766 L -2.8644 -56.7966 L -1.166 -55.8409 L 0.6055 -54.1408 L 0.7391 -51.5935 L 5.2174 -42.818 L 5.5601 -41.9593 L 5.5601 -31.4429 L 8.4559 -0.36 L -15.5935 -0.36 L -12.3297 -31.4606 L -13.4962 -42.0008 L -10.985 -51.3876 L -8.6287 -52.202 L -8.2312 -52.2129 L -7.8127 -51.7759 L -5.231 -52.0964 L -3.6479 -52.1562 L -0.6806 -51.7696 L -0.1405 -52.1207 L -0.1421 -53.3854 L -2.1201 -54.6054 L -2.7561 -54.5907 L -3.5925 -54.7679 L -3.7407 -54.726 L -5.186 -54.8901 L -5.186 -60.2706 L -12.0023 -59.3622 L -9.1611 -61.0623 L -7.6213 -63.0851 L -7.4772 -63.6099 L -7.0573 -64.4144 L -6.9169 -64.851 L -6.6708 -65.3741 L -6.5009 -66.0026 L -6.4202 -66.7141 L -5.6763 -67.7672' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:26.4' inkscape:groupmode='layer' inkscape:label='Layer 60, z:26.4' transform='translate(280.0, 19059.4027)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate26.4' fill='#000' stroke='none' y='15' >Layer 60, z:26.4</text>
+			<path d='M -6.1895 -68.6855 L -4.4589 -68.2262 L -3.7791 -67.9494 L -2.5551 -66.9374 L -2.1756 -66.4737 L -0.8382 -64.2602 L 1.6041 -61.3225 L 4.3438 -59.633 L 4.393 -58.9141 L -2.2689 -59.8593 L -2.1738 -57.108 L 1.4682 -55.0112 L 2.2485 -53.2237 L 1.995 -52.7923 L 2.0284 -52.1553 L 1.7597 -51.2929 L 1.072 -51.8786 L 0.4953 -52.9078 L -2.1425 -54.4875 L -2.8551 -54.1066 L -3.5396 -54.2525 L -3.7484 -54.1936 L -5.096 -54.34 L -5.9365 -54.6349 L -5.9365 -59.8594 L -11.3607 -59.1025 L -12.2255 -59.3073 L -11.6883 -60.0153 L -9.5378 -61.3356 L -8.0809 -63.229 L -7.6824 -64.6801 L -7.264 -65.5752 L -7.0021 -67.4789 z M -12.7334 -31.4596 L -13.8721 -40.8324 L -13.8391 -42.0285 L -11.3944 -51.6654 L -8.8051 -52.5603 L -8.4202 -52.4775 L -7.8364 -52.1346 L -5.1139 -52.5136 L -3.6888 -52.5666 L -1.4653 -52.309 L -0.4263 -52.085 L 0.0796 -52.4228 L 0.5855 -52.0736 L 1.0086 -51.6654 L 5.0876 -43.7533 L 5.7759 -42.0285 L 5.7759 -31.4596 L 8.7067 -0.0 L -16.0682 -0.0 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -6.0341 -68.2718 L -4.5734 -67.8841 L -3.966 -67.6368 L -2.8115 -66.6823 L -2.4705 -66.2656 L -1.1323 -64.0509 L 1.365 -61.0471 L 4.0002 -59.4219 L 4.0085 -59.3221 L -2.6435 -60.2767 L -2.5267 -56.8958 L 1.1857 -54.7584 L 1.8451 -53.2479 L 1.6298 -52.8814 L 1.7029 -51.4893 L 0.7625 -53.1674 L -2.1324 -54.9011 L -2.9087 -54.4861 L -3.5517 -54.6232 L -3.779 -54.559 L -5.0159 -54.6934 L -5.5765 -54.8901 L -5.5765 -60.2731 L -12.0522 -59.3695 L -9.2929 -61.0635 L -7.7525 -63.0655 L -7.3433 -64.5553 L -6.9148 -65.4721 L -6.6568 -67.3471 L -6.0341 -68.2718 M -8.7825 -52.1872 L -8.5526 -52.1377 L -7.9108 -51.7608 L -5.0823 -52.1545 L -3.7029 -52.2058 L -1.5241 -51.9534 L -0.3532 -51.701 L 0.0762 -51.9877 L 0.3567 -51.7941 L 0.7159 -51.4476 L 4.7597 -43.6038 L 5.4159 -41.9593 L 5.4159 -31.4429 L 8.3116 -0.36 L -15.668 -0.36 L -12.3711 -31.4624 L -13.5115 -40.8492 L -13.4803 -41.9787 L -11.0932 -51.3886 L -8.7825 -52.1872' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:26.8' inkscape:groupmode='layer' inkscape:label='Layer 61, z:26.8' transform='translate(280.0, 19371.2371)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate26.8' fill='#000' stroke='none' y='15' >Layer 61, z:26.8</text>
+			<path d='M -6.5533 -69.1913 L -4.8562 -68.7431 L -3.409 -68.1539 L -2.3518 -67.0261 L -0.6997 -64.278 L 1.7412 -61.3237 L 3.7458 -59.9752 L 4.2656 -59.2433 L 3.3875 -59.057 L -1.8549 -59.8594 L -1.8261 -57.1991 L 1.7451 -55.0638 L 3.8158 -50.3203 L 3.143 -49.1756 L 2.631 -49.5588 L 0.7187 -53.115 L -1.8195 -54.5919 L -2.9733 -53.9967 L -3.4986 -54.108 L -3.7867 -54.0266 L -4.9549 -54.1535 L -6.3269 -54.6349 L -6.3269 -59.8594 L -11.4036 -59.1152 L -12.272 -59.3126 L -11.7413 -60.0278 L -9.6701 -61.3356 L -8.2119 -63.2103 L -7.518 -65.6516 L -7.2367 -68.1113 z M -12.8427 -31.4596 L -13.8741 -39.9488 L -13.8168 -42.0285 L -11.4332 -51.6654 L -8.9146 -52.556 L -8.5329 -52.4763 L -7.9499 -52.1366 L -4.9678 -52.5716 L -3.7462 -52.6161 L -1.7824 -52.3934 L -0.352 -52.085 L 0.2136 -52.3816 L 0.956 -51.6654 L 4.6295 -44.5396 L 5.6316 -42.0285 L 5.6316 -31.4596 L 8.5625 0.0 L -16.1431 0.0 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -6.3902 -68.7759 L -4.9705 -68.4009 L -3.6177 -67.8502 L -2.6407 -66.8078 L -0.9944 -64.0694 L 1.4969 -61.0541 L 4.0825 -59.3148 L -2.2195 -60.2794 L -2.1839 -56.9936 L 1.4613 -54.814 L 3.4124 -50.3445 L 3.0365 -49.7049 L 2.9104 -49.7994 L 0.9876 -53.375 L -1.8091 -55.0024 L -3.0243 -54.3755 L -3.5109 -54.4786 L -3.8173 -54.392 L -4.8748 -54.5069 L -5.9669 -54.8901 L -5.9669 -60.276 L -12.097 -59.3774 L -9.4246 -61.0648 L -7.8848 -63.0445 L -7.1637 -65.5815 L -6.8884 -67.9885 L -6.3902 -68.7759 M -8.8896 -52.183 L -8.6637 -52.1359 L -8.0225 -51.7622 L -4.9352 -52.2125 L -3.76 -52.2554 L -1.8408 -52.0377 L -0.3003 -51.7056 L 0.1507 -51.9421 L 0.6633 -51.4476 L 4.3016 -44.3901 L 5.2716 -41.9593 L 5.2716 -31.4429 L 8.1674 -0.36 L -15.7434 -0.36 L -12.4804 -31.4626 L -13.5135 -39.9656 L -13.458 -41.9798 L -11.1303 -51.3907 L -8.8896 -52.183' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:27.2' inkscape:groupmode='layer' inkscape:label='Layer 62, z:27.2' transform='translate(280.0, 19683.0716)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate27.2' fill='#000' stroke='none' y='15' >Layer 62, z:27.2</text>
+			<path d='M -0.5612 -64.2957 L 1.8205 -61.3181 L 3.7611 -59.9756 L 4.274 -59.2366 L 3.3924 -59.058 L -1.3148 -59.7819 L -1.5143 -59.6205 L -1.479 -57.2377 L -0.9258 -56.7998 L 1.9943 -55.0944 L 4.3882 -49.6309 L 4.9454 -46.796 L 4.2559 -46.766 L 3.6407 -48.3592 L 0.9237 -53.2731 L -1.5959 -54.6338 L -2.8775 -53.9518 L -3.1423 -53.8965 L -3.4578 -53.9633 L -3.8249 -53.8596 L -4.8167 -53.9673 L -6.5365 -54.6016 L -6.5365 -59.8594 L -11.4591 -59.1184 L -12.3318 -59.3103 L -11.8064 -60.033 L -9.8023 -61.3356 L -8.3428 -63.1916 L -7.638 -65.5922 L -7.6971 -66.5888 L -7.4712 -68.7437 L -6.917 -69.6972 L -5.8013 -69.4498 L -4.0878 -68.7854 L -3.2653 -68.2614 L -2.2194 -67.0733 z M -12.952 -31.4596 L -13.8761 -39.0653 L -13.7944 -42.0285 L -11.4576 -51.6654 L -9.0237 -52.5505 L -8.6459 -52.4748 L -8.0632 -52.1383 L -4.8216 -52.6295 L -3.8037 -52.6656 L -2.0994 -52.4777 L -0.2777 -52.085 L 0.1952 -52.3289 L 0.9033 -51.6654 L 4.1715 -45.3259 L 5.4874 -42.0285 L 5.4874 -31.4596 L 8.4183 0.0 L -16.2179 -0.0 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M 0.1344 -51.8925 L 0.6118 -51.4452 L 3.8436 -45.1764 L 5.1274 -41.9593 L 5.1274 -31.4429 L 8.0232 -0.36 L -15.8186 -0.36 L -12.5897 -31.4628 L -13.5155 -39.0821 L -13.4356 -41.9806 L -11.1532 -51.393 L -8.9955 -52.1777 L -8.7747 -52.1335 L -8.134 -51.7634 L -4.7881 -52.2705 L -3.8171 -52.3049 L -2.1572 -52.1219 L -0.2274 -51.7059 L 0.1344 -51.8925' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:27.6' inkscape:groupmode='layer' inkscape:label='Layer 63, z:27.6' transform='translate(280.0, 19994.9061)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate27.6' fill='#000' stroke='none' y='15' >Layer 63, z:27.6</text>
+			<path d='M -0.4226 -64.3135 L 1.8014 -61.3066 L 3.7272 -59.9743 L 4.2379 -59.2357 L 3.3573 -59.0602 L -1.109 -59.7725 L -1.3116 -59.4758 L -1.1324 -58.5647 L -1.1324 -57.2357 L 0.4001 -56.0227 L 2.1137 -55.0219 L 4.586 -49.513 L 5.022 -47.1404 L 4.2824 -47.0466 L 3.8385 -48.2414 L 1.0431 -53.2006 L -1.4562 -54.6318 L -2.9239 -53.8556 L -3.2598 -53.7853 L -3.4169 -53.8186 L -3.8632 -53.6926 L -4.6727 -53.7805 L -5.7848 -54.1707 L -6.6687 -54.6349 L -6.6687 -59.8594 L -11.4893 -59.122 L -12.3636 -59.3109 L -11.8409 -60.0368 L -9.8671 -61.3356 L -8.4738 -63.1729 L -7.7494 -65.5241 L -7.8714 -67.5809 L -7.7263 -69.0755 L -7.8654 -69.4654 L -7.631 -70.3947 L -5.0034 -69.5144 L -3.1466 -68.3316 L -2.0898 -67.1251 z M -13.0614 -31.4596 L -13.8781 -38.1818 L -13.7721 -42.0285 L -11.4819 -51.6654 L -9.1327 -52.5448 L -8.7596 -52.4733 L -8.1819 -52.1449 L -5.7658 -52.5659 L -3.8612 -52.7151 L -2.4165 -52.5621 L -0.2964 -52.085 L 0.3843 -52.1153 L 0.8507 -51.6654 L 3.7135 -46.1123 L 5.3432 -42.0285 L 5.3432 -31.4596 L 8.274 0.0 L -16.2928 -0.0 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -7.3769 -69.9299 L -5.1596 -69.1871 L -3.3835 -68.0556 L -2.3825 -66.9129 L -0.7229 -64.1141 L 1.5475 -61.0445 L 4.0553 -59.3096 L -1.2886 -60.1479 L -1.694 -59.5543 L -1.4924 -58.5296 L -1.4924 -57.0615 L 0.1966 -55.7247 L 1.8325 -54.7692 L 4.2398 -49.4052 L 4.5992 -47.4497 L 4.5204 -47.4397 L 4.1661 -48.3934 L 1.308 -53.4637 L -1.4493 -55.0427 L -3.0473 -54.1976 L -3.2593 -54.1532 L -3.4292 -54.1892 L -3.8938 -54.058 L -4.5926 -54.1339 L -5.6407 -54.5017 L -6.3087 -54.8525 L -6.3087 -60.2787 L -12.1843 -59.3798 L -9.6176 -61.0688 L -8.1485 -63.0061 L -7.3862 -65.4804 L -7.5104 -67.5741 L -7.3602 -69.1207 L -7.4896 -69.4834 L -7.3769 -69.9299 M 0.2458 -51.7488 L 0.558 -51.4476 L 3.3856 -45.9628 L 4.9832 -41.9593 L 4.9832 -31.4429 L 7.8789 -0.36 L -15.8939 -0.36 L -12.6992 -31.463 L -13.5175 -38.1986 L -13.4133 -41.9814 L -11.176 -51.3955 L -9.1011 -52.1722 L -8.8858 -52.1309 L -8.2474 -51.7681 L -5.7207 -52.2083 L -3.8661 -52.3536 L -2.4752 -52.2063 L -0.3285 -51.7232 L 0.2458 -51.7488' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:28.0' inkscape:groupmode='layer' inkscape:label='Layer 64, z:28.0' transform='translate(280.0, 20306.7406)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate28.0' fill='#000' stroke='none' y='15' >Layer 64, z:28.0</text>
+			<path d='M -0.3886 -64.3098 L 1.7822 -61.2951 L 3.6923 -59.9737 L 4.2007 -59.2355 L 3.3211 -59.0631 L -1.002 -59.7707 L -1.2086 -59.5472 L -0.7859 -57.7533 L -0.7859 -57.2337 L 1.726 -55.2456 L 2.233 -54.9495 L 4.7054 -49.4406 L 5.0833 -46.9801 L 4.3483 -47.0187 L 3.9579 -48.1689 L 1.1625 -53.1281 L -1.3166 -54.6298 L -2.9703 -53.7593 L -3.3731 -53.6751 L -3.3731 -52.7203 L -2.7336 -52.6465 L -0.349 -52.085 L 0.3317 -52.1153 L 0.798 -51.6654 L 3.2555 -46.8986 L 5.1989 -42.0285 L 5.1989 -31.4596 L 8.1298 0.0 L -16.3677 0.0 L -13.1707 -31.4596 L -13.8801 -37.2982 L -13.7497 -42.0285 L -12.1459 -48.4087 L -11.5062 -51.6654 L -9.1721 -52.5438 L -8.7995 -52.473 L -8.2196 -52.1428 L -4.7626 -52.7203 L -4.7626 -53.6751 L -5.3973 -53.8978 L -6.801 -54.6349 L -6.801 -59.8594 L -11.4969 -59.1291 L -12.3708 -59.3165 L -11.8491 -60.0422 L -9.8836 -61.3356 L -8.5927 -63.156 L -7.8609 -65.456 L -8.0217 -68.8202 L -8.5712 -70.3616 L -8.482 -70.7152 L -7.7784 -70.8632 L -5.9093 -70.2373 L -3.0279 -68.4018 L -1.9601 -67.1768 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -8.1879 -70.4092 L -7.8 -70.4907 L -6.0655 -69.9099 L -3.2651 -68.1261 L -2.2571 -66.9696 L -0.6937 -64.1174 L 1.5263 -61.0344 L 4.0204 -59.309 L -1.1473 -60.1439 L -1.5921 -59.6628 L -1.1459 -57.7085 L -1.1459 -57.0595 L 1.5225 -54.9475 L 1.9518 -54.6968 L 4.3572 -49.3372 L 4.6664 -47.3597 L 4.6116 -47.3631 L 4.288 -48.3164 L 1.4298 -53.3871 L -1.3042 -55.0432 L -3.0933 -54.1014 L -3.7331 -53.9676 L -3.7331 -52.3995 L -2.7957 -52.2913 L -0.3829 -51.7231 L 0.1931 -51.7488 L 0.5053 -51.4476 L 2.9276 -46.7491 L 4.8389 -41.9593 L 4.8389 -31.4429 L 7.7347 -0.36 L -15.9693 -0.36 L -12.8085 -31.4632 L -13.5195 -37.315 L -13.3909 -41.9791 L -11.7945 -48.3301 L -11.1916 -51.3991 L -9.1399 -52.1712 L -8.9256 -52.1305 L -8.2865 -51.7666 L -4.4026 -52.4155 L -4.4026 -53.9303 L -5.2533 -54.2288 L -6.441 -54.8525 L -6.441 -60.2797 L -12.1926 -59.3852 L -9.6291 -61.0721 L -8.2666 -62.9935 L -7.4982 -65.4085 L -7.6647 -68.8908 L -8.1954 -70.3796 L -8.1879 -70.4092' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:28.4' inkscape:groupmode='layer' inkscape:label='Layer 65, z:28.4' transform='translate(280.0, 20618.575)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate28.4' fill='#000' stroke='none' y='15' >Layer 65, z:28.4</text>
+			<path d='M -13.28 -31.4596 L -13.882 -36.4147 L -13.7274 -42.0285 L -12.3372 -47.559 L -11.5305 -51.6654 L -9.1964 -52.5438 L -8.8243 -52.4731 L -8.2486 -52.1472 L -5.1055 -52.7203 L -5.1055 -53.6751 L -6.9333 -54.6349 L -6.9333 -59.8594 L -11.5043 -59.1365 L -12.3776 -59.3223 L -11.8571 -60.0478 L -9.9002 -61.3356 L -8.609 -63.1536 L -7.9652 -65.3923 L -8.1604 -68.7002 L -8.7989 -69.9163 L -9.2771 -71.2578 L -9.1495 -71.7637 L -7.257 -71.1258 L -6.0777 -70.4992 L -2.9707 -68.4292 L -1.9593 -67.1657 L -0.4059 -64.2957 L 1.7631 -61.2835 L 3.6625 -59.9695 L 4.1695 -59.2315 L 3.2905 -59.0612 L -0.9211 -59.7645 L -1.129 -59.5416 L -0.5893 -57.2336 L 2.2524 -54.9394 L 4.6768 -49.4603 L 4.8839 -48.0659 L 4.8142 -47.8899 L 5.0903 -47.2072 L 4.3121 -47.0559 L 3.9557 -48.1584 L 1.1997 -53.0975 L -1.235 -54.6243 L -2.9934 -53.6748 L -2.9934 -52.72 L -0.4017 -52.085 L 0.279 -52.1153 L 0.7454 -51.6654 L 2.7974 -47.6849 L 5.0547 -42.0285 L 5.0547 -31.4596 L 7.9856 -0.0 L -16.4425 0.0 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:28.8' inkscape:groupmode='layer' inkscape:label='Layer 66, z:28.8' transform='translate(280.0, 20930.4095)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate28.8' fill='#000' stroke='none' y='15' >Layer 66, z:28.8</text>
+			<path d='M -13.3894 -31.4596 L -13.884 -35.5312 L -13.705 -42.0285 L -12.5285 -46.7092 L -11.5548 -51.6654 L -9.2207 -52.5438 L -8.8488 -52.4731 L -8.2748 -52.1489 L -5.2378 -52.7203 L -5.2378 -53.6751 L -6.9525 -54.6349 L -6.9525 -59.8594 L -11.5206 -59.1367 L -12.3939 -59.3225 L -11.8734 -60.048 L -9.9167 -61.3356 L -8.6254 -63.1513 L -7.9792 -65.3838 L -8.2606 -68.6151 L -9.8633 -71.7252 L -9.3365 -72.2666 L -8.7667 -72.0745 L -5.9733 -70.5865 L -2.9808 -68.4096 L -1.9726 -67.1477 L -0.4232 -64.2816 L 1.744 -61.272 L 3.6466 -59.9558 L 4.1601 -59.2167 L 3.2783 -59.0372 L -0.8459 -59.6925 L -1.0959 -59.4314 L -0.6487 -57.2336 L 2.1993 -54.9745 L 4.6236 -49.4954 L 4.8525 -47.9056 L 4.8007 -47.7872 L 5.0262 -47.0019 L 4.304 -46.9396 L 3.9334 -48.1581 L 1.1774 -53.0972 L -1.2542 -54.6127 L -2.8538 -53.6728 L -2.8538 -52.718 L -0.4543 -52.085 L 0.2264 -52.1153 L 0.6927 -51.6654 L 2.3394 -48.4713 L 4.9104 -42.0285 L 4.9104 -31.4596 L 7.8413 0.0 L -16.5174 0.0 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:29.2' inkscape:groupmode='layer' inkscape:label='Layer 67, z:29.2' transform='translate(280.0, 21242.244)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate29.2' fill='#000' stroke='none' y='15' >Layer 67, z:29.2</text>
+			<path d='M -13.4987 -31.4596 L -13.886 -34.6476 L -13.6827 -42.0285 L -12.7197 -45.8594 L -11.5791 -51.6654 L -9.245 -52.5438 L -8.8731 -52.4731 L -8.2998 -52.1495 L -5.3044 -52.7203 L -5.3044 -53.6751 L -6.9691 -54.6349 L -6.9691 -59.8594 L -11.5372 -59.1367 L -12.4105 -59.3225 L -11.89 -60.048 L -9.9333 -61.3356 L -8.6418 -63.149 L -7.9931 -65.3752 L -8.2892 -68.5889 L -10.0051 -71.7101 L -10.1727 -72.6251 L -9.2606 -72.442 L -5.9802 -70.5653 L -2.991 -68.39 L -1.9858 -67.1297 L -0.4405 -64.2675 L 1.7249 -61.2605 L 3.6243 -59.9465 L 4.1313 -59.2085 L 3.2523 -59.0382 L -0.9661 -59.7464 L -1.1818 -59.522 L -0.7165 -57.2402 L 2.1461 -55.0096 L 4.5629 -49.4943 L 4.754 -48.1431 L 4.703 -47.9324 L 4.9668 -47.2614 L 4.1878 -47.0837 L 3.8779 -48.1642 L 1.155 -53.097 L -1.2733 -54.6012 L -2.8311 -53.6638 L -2.8311 -52.709 L -0.507 -52.085 L 0.1737 -52.1153 L 0.6401 -51.6654 L 1.8814 -49.2576 L 4.7662 -42.0285 L 4.7662 -31.4596 L 7.6971 -0.0 L -16.5923 -0.0 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:29.6' inkscape:groupmode='layer' inkscape:label='Layer 68, z:29.6' transform='translate(280.0, 21554.0784)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate29.6' fill='#000' stroke='none' y='15' >Layer 68, z:29.6</text>
+			<path d='M -13.608 -31.4596 L -13.888 -33.7641 L -13.6603 -42.0285 L -12.911 -45.0096 L -11.6035 -51.6654 L -9.2694 -52.5438 L -8.8975 -52.4731 L -8.3241 -52.1494 L -5.3209 -52.7203 L -5.3209 -53.6751 L -6.9856 -54.6349 L -6.9856 -59.8594 L -11.5537 -59.1367 L -12.4271 -59.3225 L -11.9066 -60.048 L -9.9498 -61.3356 L -8.6582 -63.1466 L -8.0071 -65.3667 L -8.3017 -68.578 L -10.3414 -72.3511 L -9.9537 -72.7931 L -5.9872 -70.5441 L -3.0012 -68.3705 L -1.999 -67.1117 L -0.4578 -64.2534 L 1.7058 -61.2489 L 3.6051 -59.935 L 4.1121 -59.197 L 3.2331 -59.0267 L -0.9886 -59.7375 L -1.2082 -59.5124 L -0.7801 -57.2435 L 2.0856 -55.0095 L 4.4973 -49.4702 L 4.684 -48.1496 L 4.1318 -47.6805 L 3.7778 -48.1788 L 1.1247 -53.0931 L -1.2924 -54.5897 L -2.8502 -53.6523 L -2.8502 -52.6975 L -0.5596 -52.085 L 0.1211 -52.1153 L 0.5874 -51.6654 L 1.4233 -50.0439 L 4.622 -42.0285 L 4.622 -31.4596 L 7.5528 -0.0 L -16.6671 -0.0 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -4.9609 -52.4223 L -4.9609 -53.8831 L -6.6256 -54.8429 L -6.6256 -60.2808 L -12.25 -59.391 L -9.6957 -61.0718 L -8.3298 -62.987 L -7.6423 -65.3312 L -7.9499 -68.6843 L -9.9056 -72.302 L -9.8763 -72.3354 L -6.1825 -70.241 L -3.2525 -68.1081 L -2.3006 -66.9126 L -0.7636 -64.062 L 1.4499 -60.9882 L 3.9332 -59.2703 L -1.1244 -60.1138 L -1.5877 -59.6391 L -1.107 -57.0419 L 1.7921 -54.7819 L 4.1477 -49.3714 L 4.3085 -48.234 L 4.1886 -48.0522 L 4.1131 -48.3155 L 1.3959 -53.3486 L -1.2897 -55.0115 L -3.2102 -53.8558 L -3.2102 -52.4211 L -0.599 -51.7229 L -0.0175 -51.7488 L 0.2947 -51.4476 L 1.0954 -49.8944 L 4.262 -41.9593 L 4.262 -31.4429 L 7.1577 -0.36 L -16.2704 -0.36 L -13.2459 -31.4639 L -13.5274 -33.7809 L -13.3015 -41.9791 L -12.5596 -44.931 L -11.2889 -51.3991 L -9.2372 -52.1712 L -9.0229 -52.1305 L -8.3863 -51.7711 L -4.9609 -52.4223' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:30.0' inkscape:groupmode='layer' inkscape:label='Layer 69, z:30.0' transform='translate(280.0, 21865.9129)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate30.0' fill='#000' stroke='none' y='15' >Layer 69, z:30.0</text>
+			<path d='M -2.0122 -67.0937 L -0.4751 -64.2393 L 1.6867 -61.2374 L 3.5877 -59.9223 L 4.0989 -59.1836 L 3.218 -59.0074 L -1.1048 -59.7174 L -1.3132 -59.7966 L -1.2388 -59.5864 L -0.908 -57.2445 L 2.0122 -54.9481 L 4.4317 -49.4461 L 4.4867 -49.0573 L 4.0361 -48.3737 L 3.6034 -48.3293 L 1.0206 -53.055 L -1.3187 -54.5806 L -2.9541 -53.669 L -2.9541 -52.7142 L -0.6123 -52.085 L 0.0684 -52.1153 L 0.5348 -51.6654 L 0.9653 -50.8303 L 4.4777 -42.0285 L 4.4777 -31.4596 L 7.4086 0.0 L -16.742 0.0 L -13.7174 -31.4596 L -13.89 -32.8806 L -13.638 -42.0285 L -11.6278 -51.6654 L -9.2937 -52.5438 L -8.9216 -52.4731 L -8.3463 -52.1475 L -5.2243 -52.7203 L -5.2243 -53.6751 L -7.0022 -54.6349 L -7.0022 -59.8594 L -11.5703 -59.1367 L -12.4436 -59.3225 L -11.9231 -60.048 L -9.9664 -61.3356 L -8.6746 -63.1443 L -8.021 -65.3582 L -8.2443 -68.6277 L -9.8249 -71.7115 L -9.41 -72.3128 L -6.0664 -70.4964 L -3.0133 -68.3505 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -4.8643 -52.4203 L -4.8643 -53.8899 L -6.6422 -54.8497 L -6.6422 -60.2808 L -12.2665 -59.391 L -9.7124 -61.0718 L -8.3465 -62.9843 L -7.6574 -65.3183 L -7.8902 -68.7261 L -9.4064 -71.6842 L -9.2975 -71.842 L -6.2564 -70.1899 L -3.2626 -68.0857 L -2.3139 -66.8946 L -0.7809 -64.048 L 1.4308 -60.9767 L 3.9158 -59.2576 L -1.6859 -60.1777 L -1.2442 -57.0509 L 1.7189 -54.7208 L 4.0822 -49.3466 L 4.1112 -49.1417 L 3.8295 -48.7144 L 3.8046 -48.7118 L 1.2931 -53.3071 L -1.3041 -55.0009 L -3.3141 -53.8805 L -3.3141 -52.4382 L -0.6519 -51.7229 L -0.0701 -51.7488 L 0.2421 -51.4476 L 0.6374 -50.6808 L 4.1177 -41.9593 L 4.1177 -31.4429 L 7.0135 -0.36 L -16.3457 -0.36 L -13.3553 -31.4641 L -13.5294 -32.8974 L -13.279 -41.9865 L -11.3158 -51.3982 L -9.2615 -52.1712 L -9.0472 -52.1305 L -8.4098 -51.7699 L -4.8643 -52.4203' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:30.4' inkscape:groupmode='layer' inkscape:label='Layer 70, z:30.4' transform='translate(280.0, 22177.7474)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate30.4' fill='#000' stroke='none' y='15' >Layer 70, z:30.4</text>
+			<path d='M -2.1082 -67.0697 L -0.5361 -64.2331 L 1.6676 -61.2259 L 3.5594 -59.9171 L 4.0653 -59.1793 L 3.1868 -59.0105 L -1.4348 -59.826 L -1.4348 -59.0516 L -1.1415 -57.2502 L 1.9387 -54.8866 L 3.9888 -50.2443 L 3.4995 -49.5015 L 2.8312 -49.5285 L 0.9164 -53.0169 L -1.4348 -54.6014 L -3.1306 -53.6945 L -3.1306 -52.7397 L -0.6236 -52.085 L 0.0241 -52.1238 L 0.4821 -51.6654 L 4.3335 -42.0285 L 4.3335 -31.4596 L 7.2644 0.0 L -16.8168 0.0 L -13.8267 -31.4596 L -13.892 -31.997 L -13.6156 -42.0285 L -11.6521 -51.6654 L -9.2568 -52.548 L -8.8816 -52.4742 L -8.3054 -52.1458 L -5.0585 -52.7203 L -5.0585 -53.6751 L -6.8866 -54.6349 L -6.8866 -59.8594 L -11.5974 -59.1282 L -12.4712 -59.3158 L -11.9495 -60.0415 L -9.9829 -61.3356 L -8.6537 -63.1473 L -7.9304 -65.4136 L -8.1532 -68.7064 L -9.0001 -70.502 L -9.0891 -70.8688 L -8.8189 -71.4818 L -8.325 -71.4805 L -6.1649 -70.4341 L -3.1219 -68.3083 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -4.6985 -52.4184 L -4.6985 -53.8927 L -6.5266 -54.8525 L -6.5266 -60.2796 L -12.2929 -59.3846 L -9.7309 -61.0705 L -8.3286 -62.9818 L -7.5666 -65.3695 L -7.7986 -68.7985 L -8.6589 -70.6224 L -8.7105 -70.8352 L -8.5844 -71.1212 L -8.4081 -71.1207 L -6.3476 -70.1226 L -3.3689 -68.0417 L -2.4073 -66.8668 L -0.8399 -64.0387 L 1.413 -60.9643 L 3.8875 -59.2524 L -1.7948 -60.2551 L -1.7948 -59.0225 L -1.4739 -57.0515 L 1.6466 -54.657 L 3.5802 -50.2784 L 3.3107 -49.8694 L 3.0489 -49.88 L 1.19 -53.2667 L -1.4134 -55.0211 L -3.4906 -53.9102 L -3.4906 -52.4616 L -0.6592 -51.7222 L -0.1161 -51.7548 L 0.1752 -51.4632 L 3.9735 -41.9592 L 3.9735 -31.4429 L 6.8693 -0.36 L -16.421 -0.36 L -13.4646 -31.4643 L -13.5314 -32.0138 L -13.2566 -41.9873 L -11.3394 -51.397 L -9.2271 -52.1752 L -9.0088 -52.1323 L -8.3707 -51.7686 L -4.6985 -52.4184' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:30.8' inkscape:groupmode='layer' inkscape:label='Layer 71, z:30.8' transform='translate(280.0, 22489.5818)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate30.8' fill='#000' stroke='none' y='15' >Layer 71, z:30.8</text>
+			<path d='M -13.5933 -42.0285 L -11.6329 -51.6654 L -9.1139 -52.556 L -8.7329 -52.4765 L -8.1555 -52.1428 L -4.6748 -52.722 L -4.6748 -53.6768 L -5.0148 -53.7688 L -6.7662 -54.6349 L -6.7662 -59.8594 L -11.6008 -59.1234 L -12.473 -59.3143 L -11.9483 -60.0367 L -9.9486 -61.3356 L -8.5345 -63.1643 L -7.8289 -65.4755 L -7.9763 -68.8594 L -8.1754 -69.2924 L -8.4248 -70.321 L -7.9214 -70.6662 L -7.2288 -70.6644 L -5.3253 -69.7277 L -3.2304 -68.2661 L -2.2234 -67.0444 L -0.6539 -64.2374 L 1.5907 -61.2336 L 3.5165 -59.9118 L 4.0225 -59.1763 L 3.1458 -59.0078 L -1.5509 -59.8468 L -1.5509 -58.3517 L -1.3721 -57.2535 L 1.8653 -54.8252 L 3.2775 -51.6274 L 2.653 -50.4638 L 2.0635 -50.6994 L 0.8123 -52.9788 L -1.5509 -54.6222 L -2.4448 -54.124 L -3.5838 -53.7186 L -3.5838 -52.7638 L -3.3605 -52.7595 L -0.6236 -52.085 L 0.0215 -52.1245 L 0.4788 -51.6654 L 4.299 -42.0285 L 4.299 -31.4596 L 7.1236 0.0 L -16.8193 0.0 L -13.8473 -31.4596 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -4.6818 -52.3559 L -4.3148 -52.417 L -4.3148 -53.9523 L -4.8868 -54.1071 L -6.4062 -54.8585 L -6.4062 -60.2783 L -12.2956 -59.3818 L -9.7012 -61.067 L -8.2094 -62.9962 L -7.4666 -65.4295 L -7.6197 -68.9456 L -7.8338 -69.4111 L -8.0164 -70.1645 L -7.8102 -70.3059 L -7.313 -70.3046 L -5.5088 -69.4168 L -3.4768 -67.9991 L -2.5218 -66.8404 L -0.9565 -64.041 L 1.3379 -60.9705 L 3.847 -59.2483 L -1.9109 -60.2768 L -1.9109 -58.3226 L -1.7041 -57.0525 L 1.574 -54.5937 L 2.8772 -51.6428 L 2.4879 -50.9175 L 2.317 -50.9858 L 1.0872 -53.2261 L -1.5299 -55.0461 L -2.5938 -54.4531 L -3.9438 -53.9726 L -3.9438 -52.4107 L -3.4076 -52.4003 L -0.6564 -51.7223 L -0.1188 -51.7552 L 0.1714 -51.4638 L 3.939 -41.9597 L 3.939 -31.4435 L 6.7298 -0.36 L -16.4237 -0.36 L -13.4877 -31.4383 L -13.2342 -41.988 L -11.3208 -51.3939 L -9.0889 -52.183 L -8.863 -52.1359 L -8.2238 -51.7665 L -4.6818 -52.3559' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:31.2' inkscape:groupmode='layer' inkscape:label='Layer 72, z:31.2' transform='translate(280.0, 22801.4163)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate31.2' fill='#000' stroke='none' y='15' >Layer 72, z:31.2</text>
+			<path d='M -3.339 -68.224 L -2.3386 -67.0191 L -0.7718 -64.2416 L 1.4746 -61.2545 L 3.4623 -59.9074 L 3.9692 -59.1755 L 3.095 -59.0068 L -1.667 -59.8677 L -1.667 -57.6517 L -1.6027 -57.2568 L 1.7919 -54.7637 L 2.5627 -53.0183 L 1.8877 -51.7006 L 1.2957 -51.8701 L 0.7081 -52.9406 L -1.667 -54.6431 L -3.1827 -53.9978 L -3.8076 -53.8698 L -4.5784 -53.8129 L -5.2956 -54.0068 L -6.6458 -54.6349 L -6.6458 -59.8594 L -11.5641 -59.1248 L -12.431 -59.3212 L -11.9008 -60.0346 L -9.8282 -61.3356 L -8.4153 -63.1813 L -7.7275 -65.5375 L -7.7751 -68.3332 L -7.6156 -69.1754 L -7.3477 -69.6285 L -7.0238 -69.8506 L -6.3238 -69.9312 L -4.2409 -68.8532 z M -13.5351 -42.0285 L -11.4871 -51.6654 L -8.9681 -52.556 L -8.5868 -52.4764 L -8.0071 -52.1403 L -4.6002 -52.6783 L -3.0896 -52.6858 L -0.6236 -52.085 L 0.0215 -52.1245 L 0.4788 -51.6654 L 4.299 -42.0285 L 4.299 -31.4596 L 7.1236 0.0 L -16.7492 0.0 L -13.7301 -31.4596 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -7.2736 -69.0465 L -7.0784 -69.3767 L -6.8939 -69.5032 L -6.3917 -69.561 L -4.4274 -68.5444 L -3.5849 -67.9566 L -2.6363 -66.814 L -1.0737 -64.0441 L 1.223 -60.9902 L 3.7967 -59.2458 L -2.027 -60.2986 L -2.027 -57.6226 L -1.9344 -57.0537 L 1.5014 -54.5304 L 2.1641 -53.0298 L 1.7022 -52.1282 L 1.5391 -52.1749 L 0.9843 -53.1855 L -1.6218 -55.0536 L -3.2904 -54.3432 L -3.8572 -54.2271 L -4.5437 -54.1764 L -5.1718 -54.3463 L -6.2858 -54.8645 L -6.2858 -60.2772 L -12.2582 -59.3851 L -9.5818 -61.0652 L -8.0886 -63.0159 L -7.3666 -65.489 L -7.4145 -68.3025 L -7.2736 -69.0465 M -3.1319 -52.3256 L -0.6559 -51.7223 L -0.1188 -51.7552 L 0.1714 -51.4638 L 3.939 -41.9597 L 3.939 -31.4435 L 6.7298 -0.36 L -16.353 -0.36 L -13.3704 -31.4391 L -13.1758 -41.9874 L -11.1769 -51.3932 L -8.9431 -52.183 L -8.7172 -52.1359 L -8.0771 -51.7648 L -4.5711 -52.3184 L -3.1319 -52.3256' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:31.6' inkscape:groupmode='layer' inkscape:label='Layer 73, z:31.6' transform='translate(280.0, 23113.2508)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate31.6' fill='#000' stroke='none' y='15' >Layer 73, z:31.6</text>
+			<path d='M -2.4538 -66.9937 L -0.8897 -64.2459 L 1.3585 -61.2753 L 3.3696 -59.9176 L 3.8773 -59.1867 L 3.0037 -59.0172 L -1.8728 -59.8955 L -1.8728 -54.6709 L -2.9926 -54.2338 L -3.7567 -54.0773 L -4.6994 -54.0077 L -5.5763 -54.2448 L -6.4531 -54.6349 L -6.4531 -59.8594 L -11.5059 -59.1215 L -12.3695 -59.3223 L -11.8352 -60.0299 L -9.7078 -61.3356 L -8.2961 -63.1983 L -7.5866 -65.6236 L -7.5697 -67.4891 L -7.3151 -68.723 L -6.5681 -69.247 L -5.731 -69.3345 L -3.4916 -68.1594 z M -13.4399 -42.0285 L -11.3412 -51.6654 L -8.8223 -52.556 L -8.4409 -52.4764 L -7.8597 -52.1387 L -4.7527 -52.613 L -2.8187 -52.612 L -0.6236 -52.085 L 0.0215 -52.1245 L 0.4788 -51.6654 L 4.299 -42.0285 L 4.299 -31.4596 L 7.1236 0.0 L -16.6792 0.0 L -13.6129 -31.4596 z M 0.6087 -54.6786 L 1.1941 -55.0831 L 1.7184 -54.7023 L 1.8496 -54.4053 L 1.1399 -53.0473 L 0.604 -52.9025 L -0.4622 -53.6794 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -6.9914 -68.5104 L -6.4378 -68.8987 L -5.8018 -68.9651 L -3.7169 -67.8711 L -2.7479 -66.7826 L -1.1909 -64.0474 L 1.1075 -61.0104 L 3.7052 -59.2566 L -2.2328 -60.3261 L -2.2328 -54.9168 L -3.0949 -54.5803 L -3.8063 -54.4346 L -4.6647 -54.3712 L -5.4554 -54.585 L -6.0931 -54.8688 L -6.0931 -60.2758 L -12.1991 -59.3841 L -9.4618 -61.0642 L -7.9692 -63.0336 L -7.2271 -65.5704 L -7.21 -67.4507 L -6.9914 -68.5104 M -5.6121 -52.1177 L -4.7255 -52.253 L -2.8614 -52.252 L -0.6553 -51.7224 L -0.1188 -51.7552 L 0.1714 -51.4638 L 3.939 -41.9597 L 3.939 -31.4435 L 6.7298 -0.36 L -16.2824 -0.36 L -13.2532 -31.4392 L -13.0805 -41.9868 L -11.0321 -51.3928 L -8.7973 -52.183 L -8.5714 -52.1359 L -7.9308 -51.7637 L -5.6121 -52.1177 M 0.6766 -53.295 L 0.1022 -53.7136 L 0.835 -54.3974 L 1.1889 -54.6419 L 1.4283 -54.4681 L 1.4503 -54.4184 L 0.8939 -53.3537 L 0.6766 -53.295' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:32.0' inkscape:groupmode='layer' inkscape:label='Layer 74, z:32.0' transform='translate(280.0, 23425.0853)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate32.0' fill='#000' stroke='none' y='15' >Layer 74, z:32.0</text>
+			<path d='M -2.6659 -66.9366 L -1.9934 -65.9742 L -1.0076 -64.2501 L 1.2424 -61.2962 L 3.2631 -59.9319 L 3.772 -59.2008 L 2.8979 -59.0296 L -2.1933 -59.9322 L -2.1933 -54.7076 L -2.8024 -54.4698 L -3.7058 -54.2848 L -4.8232 -54.2023 L -6.1989 -54.5976 L -6.1989 -59.8594 L -11.3957 -59.1139 L -12.2597 -59.3163 L -11.7243 -60.024 L -9.5874 -61.3356 L -8.1769 -63.2154 L -7.3724 -65.7544 L -7.3644 -66.6449 L -7.0497 -68.0639 L -6.702 -68.339 L -6.1226 -68.6527 L -5.1124 -68.7242 L -3.7805 -68.0253 z M -13.3447 -42.0285 L -11.9991 -48.5632 L -11.1954 -51.6654 L -8.6764 -52.556 L -8.2948 -52.4763 L -7.7119 -52.1368 L -4.9052 -52.5477 L -2.5478 -52.5382 L -0.6236 -52.085 L 0.0215 -52.1245 L 0.4788 -51.6654 L 4.299 -42.0285 L 4.299 -31.4596 L 7.1236 0.0 L -16.6091 0.0 L -13.4957 -31.4596 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -6.5031 -68.0373 L -6.0196 -68.2991 L -5.1891 -68.3579 L -3.9944 -67.731 L -2.9416 -66.7027 L -2.2978 -65.7814 L -1.3084 -64.0508 L 0.9919 -61.031 L 3.5987 -59.271 L -2.5533 -60.3616 L -2.5533 -54.9535 L -2.9047 -54.8163 L -3.7554 -54.6421 L -4.7856 -54.566 L -5.8389 -54.8687 L -5.8389 -60.2747 L -12.0882 -59.3782 L -9.3406 -61.0647 L -7.8522 -63.0483 L -7.0129 -65.6972 L -7.0048 -66.6039 L -6.726 -67.861 L -6.5031 -68.0373 M -3.7545 -52.1831 L -2.5903 -52.1784 L -0.6545 -51.7224 L -0.1188 -51.7552 L 0.1714 -51.4638 L 3.939 -41.9597 L 3.939 -31.4435 L 6.7298 -0.36 L -16.2117 -0.36 L -13.136 -31.4393 L -12.9852 -41.9893 L -11.6483 -48.4817 L -10.8949 -51.3898 L -8.6514 -52.183 L -8.4255 -52.1359 L -7.7843 -51.7623 L -4.8797 -52.1876 L -3.7545 -52.1831' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:32.4' inkscape:groupmode='layer' inkscape:label='Layer 75, z:32.4' transform='translate(280.0, 23736.9197)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate32.4' fill='#000' stroke='none' y='15' >Layer 75, z:32.4</text>
+			<path d='M 3.1559 -59.9468 L 3.6659 -59.2155 L 2.7913 -59.0427 L -2.5138 -59.9689 L -2.5138 -54.7443 L -3.6549 -54.4923 L -4.9412 -54.3973 L -5.826 -54.6365 L -5.826 -59.861 L -11.2926 -59.101 L -12.1574 -59.3062 L -11.62 -60.0142 L -9.467 -61.3356 L -8.0182 -63.238 L -7.1344 -65.9002 L -6.7748 -67.4474 L -5.6923 -68.0616 L -4.5067 -68.1207 L -4.0695 -67.8913 L -2.9759 -66.8474 L -1.1562 -64.2524 L 1.1263 -61.317 z M -13.2495 -42.0285 L -12.1001 -47.6103 L -11.0496 -51.6654 L -8.5306 -52.556 L -8.1487 -52.4763 L -7.5638 -52.1344 L -5.0577 -52.4824 L -2.2769 -52.4645 L -0.6236 -52.085 L 0.0215 -52.1245 L 0.4788 -51.6654 L 4.299 -42.0285 L 4.299 -31.4596 L 7.1236 0.0 L -16.539 0.0 L -13.3784 -31.4596 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -6.4599 -67.2122 L -5.589 -67.7063 L -4.5869 -67.7563 L -4.2815 -67.596 L -3.2502 -66.6116 L -1.4458 -64.0384 L 0.8773 -61.0507 L 3.4915 -59.2858 L -2.8738 -60.3972 L -2.8738 -55.0335 L -3.7072 -54.8494 L -4.9065 -54.7608 L -5.466 -54.9121 L -5.466 -60.2745 L -11.984 -59.3684 L -9.2214 -61.064 L -7.6954 -63.0676 L -6.7875 -65.8025 L -6.4599 -67.2122 M -8.5056 -52.183 L -8.2797 -52.1359 L -7.6379 -51.7607 L -5.034 -52.1222 L -2.3188 -52.1048 L -0.6535 -51.7225 L -0.1188 -51.7552 L 0.1714 -51.4638 L 3.939 -41.9597 L 3.939 -31.4435 L 6.7298 -0.36 L -16.141 -0.36 L -13.0186 -31.4394 L -12.8899 -41.9896 L -11.7493 -47.5288 L -10.7491 -51.3898 L -8.5056 -52.183' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:32.8' inkscape:groupmode='layer' inkscape:label='Layer 76, z:32.8' transform='translate(280.0, 24048.7542)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate32.8' fill='#000' stroke='none' y='15' >Layer 76, z:32.8</text>
+			<path d='M 3.045 -59.9641 L 3.5557 -59.2327 L 2.6807 -59.059 L -2.4139 -59.9406 L -3.5336 -59.9388 L -3.5336 -54.7142 L -5.0621 -54.5921 L -5.2429 -55.289 L -5.2429 -59.8655 L -11.1996 -59.0805 L -12.0657 -59.2901 L -11.5252 -59.9985 L -9.3466 -61.3356 L -8.5601 -62.3911 L -7.7666 -63.2739 L -7.219 -64.9694 L -6.6455 -66.204 L -6.5142 -66.7688 L -5.2544 -67.4709 L -4.7099 -67.4936 L -4.2992 -67.4392 L -3.8816 -67.3202 L -3.2859 -66.7582 L -1.4787 -64.2434 L -0.3774 -63.1497 L 1.0102 -61.3379 z M -13.1543 -42.0285 L -12.2011 -46.6575 L -10.9038 -51.6654 L -8.2997 -52.5612 L -7.9141 -52.4777 L -7.3291 -52.133 L -5.2102 -52.4171 L -2.006 -52.3907 L -0.6677 -52.085 L 0.0126 -52.1154 L 0.4788 -51.6654 L 4.299 -42.0285 L 4.299 -31.4596 L 7.1236 0.0 L -16.469 -0.0 L -13.2612 -31.4596 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -6.3033 -66.0862 L -6.1997 -66.532 L -5.1539 -67.1148 L -4.7262 -67.1326 L -4.3726 -67.0858 L -4.0647 -66.9981 L -3.5581 -66.5201 L -1.7536 -64.009 L -0.6484 -62.9114 L 0.7601 -61.0724 L 3.3806 -59.3032 L -2.3833 -60.3006 L -3.8936 -60.2982 L -3.8936 -55.0466 L -4.7895 -54.975 L -4.8829 -55.3349 L -4.8829 -60.2761 L -11.8891 -59.3527 L -9.0993 -61.065 L -8.2813 -62.1627 L -7.4476 -63.0903 L -6.8832 -64.8378 L -6.3033 -66.0862 M -2.0481 -52.031 L -0.7003 -51.7232 L -0.126 -51.7489 L 0.1728 -51.4604 L 3.939 -41.9597 L 3.939 -31.4435 L 6.7298 -0.36 L -16.0704 -0.36 L -12.9014 -31.4395 L -12.7947 -41.99 L -11.8503 -46.576 L -10.6038 -51.3879 L -8.2776 -52.1881 L -8.0469 -52.1381 L -7.4046 -51.7596 L -5.1876 -52.0569 L -2.0481 -52.031' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:33.2' inkscape:groupmode='layer' inkscape:label='Layer 77, z:33.2' transform='translate(280.0, 24360.5887)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate33.2' fill='#000' stroke='none' y='15' >Layer 77, z:33.2</text>
+			<path d='M 2.9334 -59.9819 L 3.4447 -59.2504 L 2.5695 -59.0758 L -2.2136 -59.8968 L -6.6735 -59.7093 L -11.052 -59.1009 L -11.9169 -59.3061 L -11.3795 -60.014 L -9.2263 -61.3356 L -7.5149 -63.3098 L -7.2603 -64.0981 L -6.3026 -66.0863 L -5.5371 -66.5035 L -4.843 -66.7321 L -4.4724 -66.6829 L -3.5169 -66.3901 L -3.271 -66.2477 L -1.8012 -64.2344 L 0.2576 -62.1898 L 0.8941 -61.3587 z M -13.0591 -42.0285 L -12.3021 -45.7047 L -10.7579 -51.6654 L -8.0534 -52.5671 L -7.6638 -52.4792 L -7.0787 -52.1313 L -5.3626 -52.3518 L -1.7351 -52.317 L -0.7197 -52.085 L -0.2436 -52.3324 L 0.4788 -51.6654 L 4.299 -42.0285 L 4.299 -31.4596 L 7.1236 0.0 L -16.3989 0.0 L -13.144 -31.4596 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -6.0286 -65.8257 L -5.3935 -66.1718 L -4.8087 -66.3644 L -4.5494 -66.33 L -3.6617 -66.058 L -3.517 -65.9742 L -2.0751 -63.9991 L -0.0134 -61.9515 L 0.644 -61.0932 L 3.2691 -59.321 L -2.1905 -60.2581 L -6.7059 -60.0683 L -11.7434 -59.3682 L -8.9907 -61.0578 L -7.1949 -63.1294 L -6.9253 -63.964 L -6.0286 -65.8257 M -8.0347 -52.1938 L -7.7987 -52.1406 L -7.156 -51.7584 L -5.3413 -51.9916 L -1.7774 -51.9574 L -0.671 -51.7046 L -0.302 -51.8964 L 0.1743 -51.4565 L 3.939 -41.9597 L 3.939 -31.4435 L 6.7298 -0.36 L -15.9997 -0.36 L -12.7841 -31.4396 L -12.6994 -41.9904 L -11.9513 -45.6232 L -10.4585 -51.3858 L -8.0347 -52.1938' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:33.6' inkscape:groupmode='layer' inkscape:label='Layer 78, z:33.6' transform='translate(280.0, 24672.4231)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate33.6' fill='#000' stroke='none' y='15' >Layer 78, z:33.6</text>
+			<path d='M -4.7696 -65.831 L -4.4656 -65.8475 L -3.6164 -65.5577 L -2.7154 -65.036 L -2.1236 -64.2254 L -1.0413 -63.2469 L 0.7468 -61.382 L 2.8073 -60.0005 L 3.3202 -59.2707 L 2.4459 -59.0944 L -2.0133 -59.853 L -6.9433 -59.6457 L -10.9154 -59.0996 L -11.7785 -59.3069 L -11.2391 -60.0119 L -9.0575 -61.3356 L -7.2207 -63.3524 L -6.1756 -65.3439 z M -13.0268 -31.4596 L -12.9639 -42.0351 L -10.6153 -51.6644 L -7.8071 -52.5726 L -7.1905 -52.4285 L -7.1905 -52.085 L -5.5151 -52.2865 L -1.4642 -52.2432 L -0.7716 -52.085 L -0.3424 -52.446 L 0.4768 -51.6705 L 4.299 -42.0285 L 4.299 -31.4596 L 7.1236 0.0 L -16.3289 0.0 L -14.86 -15.6459 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -5.9231 -65.0504 L -4.6996 -65.4743 L -4.5158 -65.4842 L -3.7662 -65.2284 L -2.9614 -64.7625 L -2.3925 -63.9832 L -1.2923 -62.9885 L 0.5139 -61.1047 L 3.1451 -59.3406 L -1.9904 -60.2143 L -6.9754 -60.0047 L -11.6064 -59.368 L -8.8263 -61.0548 L -6.9234 -63.1442 L -5.9231 -65.0504 M -1.9461 -51.8883 L -1.5067 -51.8836 L -0.677 -51.6941 L -0.3565 -51.9637 L 0.1714 -51.4639 L 3.939 -41.9597 L 3.939 -31.4435 L 6.7298 -0.36 L -15.9335 -0.36 L -14.5019 -15.6083 L -12.6669 -31.4377 L -12.6041 -41.9908 L -10.3132 -51.3837 L -7.7915 -52.1993 L -7.5505 -52.1429 L -7.5505 -51.6791 L -5.4954 -51.9263 L -1.9461 -51.8883' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:34.0' inkscape:groupmode='layer' inkscape:label='Layer 79, z:34.0' transform='translate(280.0, 24984.2576)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate34.0' fill='#000' stroke='none' y='15' >Layer 79, z:34.0</text>
+			<path d='M -4.125 -64.865 L -3.7159 -64.7254 L -2.722 -64.1499 L -2.2402 -64.0303 L -1.0201 -62.9273 L 0.4262 -61.4187 L 1.3337 -60.9469 L 2.7117 -60.0166 L 3.2244 -59.2848 L 2.3485 -59.1083 L -1.813 -59.8092 L -7.2131 -59.5821 L -11.3505 -59.0202 L -11.7194 -59.6576 L -9.838 -60.8124 L -8.8033 -61.3356 L -7.4885 -62.8049 L -6.6441 -63.4392 L -6.0698 -64.5337 L -5.297 -64.8014 z M -12.9096 -31.4596 L -12.8687 -42.0285 L -10.4663 -51.6654 L -7.4245 -52.5846 L -6.8042 -52.4285 L -6.8042 -52.085 L -5.6676 -52.2212 L -1.1933 -52.1695 L -0.8235 -52.085 L -0.3297 -52.3524 L 0.4788 -51.6654 L 4.299 -42.0285 L 4.299 -31.4596 L 7.1236 0.0 L -16.2588 -0.0 L -14.9908 -13.5065 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -8.1571 -61.5179 L -7.2439 -62.5384 L -6.363 -63.2001 L -5.8173 -64.2402 L -5.227 -64.4447 L -4.1752 -64.5017 L -3.8657 -64.3961 L -2.8582 -63.8128 L -2.4146 -63.7027 L -1.2711 -62.6689 L 0.2074 -61.1267 L 1.1494 -60.637 L 3.0473 -59.3556 L -1.7904 -60.1705 L -7.245 -59.9411 L -11.1598 -59.4094 L -11.2321 -59.5343 L -9.6623 -60.4978 L -8.5803 -61.045 L -8.1571 -61.5179 M -7.1642 -51.6793 L -5.6482 -51.861 L -1.236 -51.81 L -0.7714 -51.7038 L -0.375 -51.9185 L 0.1772 -51.4492 L 3.939 -41.9597 L 3.939 -31.4435 L 6.7298 -0.36 L -15.8634 -0.36 L -14.6327 -13.4689 L -12.5497 -31.4381 L -12.5089 -41.9836 L -10.1664 -51.3799 L -7.4157 -52.2111 L -7.1642 -52.1479 L -7.1642 -51.6793' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:34.4' inkscape:groupmode='layer' inkscape:label='Layer 80, z:34.4' transform='translate(280.0, 25296.0921)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate34.4' fill='#000' stroke='none' y='15' >Layer 80, z:34.4</text>
+			<path d='M -2.4854 -63.6481 L -1.9309 -63.4501 L 0.1057 -61.4554 L 1.8004 -60.5742 L 3.0929 -59.7016 L 3.0942 -59.1452 L 2.6112 -59.0617 L -1.6127 -59.7653 L -5.5124 -59.6757 L -10.7623 -59.0472 L -11.6304 -59.2643 L -11.0845 -59.9734 L -8.5491 -61.3356 L -7.6603 -62.3288 L -5.7982 -63.7737 L -3.7975 -63.9175 z M -12.7735 -42.0285 L -10.2988 -51.6654 L -7.0349 -52.5946 L -6.6 -52.4787 L -6.1726 -52.1137 L -5.8201 -52.1559 L -0.8754 -52.085 L -0.3753 -52.36 L 0.4679 -51.6654 L 4.299 -42.0285 L 4.299 -31.4596 L 7.1236 0.0 L -16.1887 -0.0 L -12.7924 -31.4596 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -7.9252 -61.493 L -7.4138 -62.0644 L -5.6636 -63.4224 L -3.8212 -63.5549 L -2.5826 -63.3005 L -2.1264 -63.1376 L -0.1079 -61.1607 L 1.616 -60.2643 L 2.823 -59.4494 L 2.8937 -59.3278 L 2.7181 -59.4089 L -1.587 -60.126 L -5.538 -60.0352 L -11.4485 -59.3276 L -10.1681 -60.1134 L -8.3261 -61.045 L -7.9252 -61.493 M -2.6015 -51.7497 L -0.7854 -51.7237 L -0.4157 -51.9269 L 0.1676 -51.4464 L 3.939 -41.9596 L 3.939 -31.4435 L 6.7298 -0.36 L -15.7877 -0.36 L -12.4324 -31.4399 L -12.4136 -41.9827 L -10.0015 -51.3757 L -7.0318 -52.2212 L -6.7717 -52.1519 L -6.2864 -51.7374 L -5.8012 -51.7956 L -2.6015 -51.7497' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:34.8' inkscape:groupmode='layer' inkscape:label='Layer 81, z:34.8' transform='translate(280.0, 25607.9265)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate34.8' fill='#000' stroke='none' y='15' >Layer 81, z:34.8</text>
+			<path d='M -4.2527 -63.4437 L -3.6441 -63.4328 L -2.5943 -63.2172 L -1.6216 -62.87 L -0.2148 -61.4921 L 2.2671 -60.2016 L 2.6566 -59.9386 L 3.0064 -59.3178 L 2.1298 -59.1388 L -1.4124 -59.7215 L -5.6244 -59.6247 L -10.6348 -59.0408 L -11.4788 -59.274 L -10.9162 -59.9449 L -8.2973 -61.3329 L -7.8284 -61.8569 L -5.9622 -63.2154 z M -12.6481 -42.0285 L -10.0506 -51.6654 L -6.6442 -52.6005 L -6.0193 -52.4285 L -6.0193 -52.085 L -2.0449 -52.085 L -2.0449 -52.4285 L -1.4128 -52.7116 L -0.7807 -52.6512 L 0.4159 -51.6654 L 0.7874 -50.4987 L 4.2789 -42.0285 L 4.2789 -31.4596 L 7.1236 0.0 L -16.1187 0.0 L -12.6481 -31.4596 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -7.5856 -61.5883 L -5.8241 -62.8706 L -4.232 -63.0833 L -3.6839 -63.0735 L -2.6915 -62.8696 L -1.817 -62.5575 L -0.4284 -61.1974 L 2.0827 -59.8917 L 2.8276 -59.3888 L -1.3871 -60.0822 L -5.6494 -59.9842 L -11.3201 -59.3233 L -8.0719 -61.045 L -7.5856 -61.5883 M -6.3793 -51.725 L -1.6849 -51.725 L -1.6849 -52.1953 L -1.3524 -52.3442 L -0.9246 -52.3033 L 0.1051 -51.455 L 0.4489 -50.3753 L 3.9189 -41.9572 L 3.9189 -31.4434 L 6.7296 -0.36 L -15.7168 -0.36 L -12.2881 -31.4398 L -12.2881 -41.9808 L -9.7566 -51.3728 L -6.6443 -52.2271 L -6.3793 -52.1542 L -6.3793 -51.725' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:35.2' inkscape:groupmode='layer' inkscape:label='Layer 82, z:35.2' transform='translate(280.0, 25919.761)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate35.2' fill='#000' stroke='none' y='15' >Layer 82, z:35.2</text>
+			<path d='M -4.6679 -62.9692 L -3.4907 -62.9481 L -2.7032 -62.7864 L -1.3123 -62.2899 L -0.5341 -61.5277 L 2.2804 -60.0324 L 2.8228 -59.3636 L 1.9865 -59.1588 L -1.2121 -59.6777 L -8.0225 -59.3914 L -10.9909 -59.008 L -11.3555 -59.6593 L -8.0407 -61.3356 L -5.9899 -62.7927 z M -12.34 -31.4596 L -12.34 -42.0285 L -9.8024 -51.6654 L -6.1193 -52.652 L -2.029 -52.652 L -0.661 -52.5099 L 0.364 -51.6654 L 1.0422 -49.5357 L 4.1366 -42.0285 L 4.1366 -31.4596 L 7.1236 0.0 L -16.0486 -0.0 L -13.4926 -23.3968 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -7.2641 -61.4458 L -5.854 -62.4477 L -4.6472 -62.6088 L -3.5305 -62.5888 L -2.8004 -62.4388 L -1.5078 -61.9774 L -0.7489 -61.2341 L 2.6837 -59.4104 L -1.1906 -60.0389 L -8.0532 -59.7504 L -10.7957 -59.3962 L -10.858 -59.5075 L -7.8542 -61.0265 L -7.2641 -61.4458 M -3.393 -52.292 L -2.0476 -52.292 L -0.8061 -52.163 L 0.0532 -51.455 L 0.7037 -49.4123 L 3.7766 -41.9572 L 3.7766 -31.4425 L 6.7278 -0.36 L -15.6471 -0.36 L -13.1354 -23.3518 L -11.98 -31.434 L -11.98 -41.9819 L -9.5075 -51.3717 L -6.0719 -52.292 L -3.393 -52.292' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:35.6' inkscape:groupmode='layer' inkscape:label='Layer 83, z:35.6' transform='translate(280.0, 26231.5955)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate35.6' fill='#000' stroke='none' y='15' >Layer 83, z:35.6</text>
+			<path d='M -5.0831 -62.4947 L -3.3373 -62.4633 L -2.8121 -62.3555 L -1.0031 -61.7097 L -0.8558 -61.5655 L 2.6257 -59.7552 L 2.4086 -59.0879 L -1.0118 -59.6339 L -5.8484 -59.5227 L -10.8011 -58.9802 L -11.0134 -59.6488 L -8.2614 -61.0954 L -7.4905 -61.3396 L -6.0176 -62.3699 z M -12.0318 -31.4596 L -12.0318 -42.0285 L -9.5542 -51.6654 L -6.2654 -52.5207 L -1.8843 -52.5207 L -0.5414 -52.3685 L 0.3121 -51.6654 L 1.2969 -48.5726 L 3.9944 -42.0285 L 3.9944 -31.4596 L 7.1236 0.0 L -15.9786 0.0 L -14.194 -16.3352 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -6.2041 -61.8002 L -5.8831 -62.0247 L -5.0624 -62.1343 L -3.3771 -62.104 L -2.9093 -62.0079 L -1.1985 -61.3972 L -1.0694 -61.2708 L 2.189 -59.5765 L 2.1615 -59.4919 L -0.9874 -59.9946 L -5.8722 -59.8822 L -10.5472 -59.3702 L -10.579 -59.4705 L -8.1222 -60.7619 L -7.3293 -61.013 L -6.2041 -61.8002 M -6.2194 -52.1607 L -1.9046 -52.1607 L -0.688 -52.0228 L 0.0013 -51.455 L 0.9584 -48.4492 L 3.6344 -41.9572 L 3.6344 -31.4417 L 6.726 -0.36 L -15.5771 -0.36 L -13.8368 -16.2902 L -11.6718 -31.434 L -11.6718 -41.983 L -9.2583 -51.3704 L -6.2194 -52.1607' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:36.0' inkscape:groupmode='layer' inkscape:label='Layer 84, z:36.0' transform='translate(280.0, 26543.43)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate36.0' fill='#000' stroke='none' y='15' >Layer 84, z:36.0</text>
+			<path d='M -3.1839 -61.9786 L -1.8402 -61.5388 L -0.7798 -61.3961 L 2.421 -59.6929 L 2.2125 -59.1161 L -0.8115 -59.59 L -5.9604 -59.4718 L -10.7321 -58.9675 L -10.8319 -59.6553 L -8.5347 -60.8286 L -6.9075 -61.344 L -6.0453 -61.9471 L -5.4982 -62.0202 z M -11.7236 -31.4596 L -11.7236 -42.0285 L -9.306 -51.6654 L -6.4116 -52.3894 L -1.7396 -52.3894 L -0.4217 -52.2272 L 0.2602 -51.6654 L 1.5517 -47.6096 L 3.8522 -42.0285 L 3.8522 -31.4596 L 7.1236 0.0 L -15.9085 -0.0 L -14.8954 -9.2736 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -10.4387 -59.4519 L -8.3975 -60.4944 L -6.7463 -61.0174 L -5.9108 -61.6019 L -5.4775 -61.6598 L -3.2445 -61.6196 L -1.9209 -61.1864 L -0.8919 -61.0479 L 1.9763 -59.5217 L -0.7876 -59.9506 L -5.9835 -59.8314 L -10.4256 -59.3619 L -10.4387 -59.4519 M -1.7617 -52.0294 L -0.5697 -51.8827 L -0.0506 -51.455 L 1.2132 -47.4862 L 3.4922 -41.9572 L 3.4922 -31.4409 L 6.7242 -0.36 L -15.507 -0.36 L -14.5382 -9.2286 L -11.3636 -31.434 L -11.3636 -41.984 L -9.0093 -51.3685 L -6.3673 -52.0294 L -1.7617 -52.0294' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:36.4' inkscape:groupmode='layer' inkscape:label='Layer 85, z:36.4' transform='translate(280.0, 26855.2644)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate36.4' fill='#000' stroke='none' y='15' >Layer 85, z:36.4</text>
+			<path d='M -3.0305 -61.4939 L -0.5828 -61.1637 L 2.185 -59.7245 L 1.9413 -59.1515 L -0.6112 -59.5462 L -3.0622 -59.5423 L -9.683 -59.0637 L -10.5259 -59.3288 L -9.9394 -59.9897 L -8.8081 -60.5618 L -6.3244 -61.3485 L -6.0729 -61.5244 z M -11.4155 -42.0285 L -8.9896 -51.6654 L -6.5577 -52.2581 L -1.5949 -52.2581 L -0.302 -52.0858 L 0.2083 -51.6654 L 1.8064 -46.6466 L 3.71 -42.0285 L 3.71 -31.4596 L 7.1236 0.0 L -15.8384 0.0 L -11.4155 -31.4596 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -9.7769 -59.6684 L -8.6716 -60.2274 L -6.1632 -61.0219 L -5.9611 -61.1633 L -3.0565 -61.1341 L -0.6932 -60.8153 L 1.7233 -59.5588 L 1.7196 -59.5501 L -0.5838 -59.9062 L -3.0754 -59.9023 L -10.3552 -59.376 L -9.7769 -59.6684 M -6.5145 -51.8981 L -1.6188 -51.8981 L -0.4515 -51.7425 L -0.1025 -51.455 L 1.4679 -46.5232 L 3.35 -41.9572 L 3.35 -31.4401 L 6.7224 -0.36 L -15.4242 -0.36 L -11.0555 -31.4344 L -11.0555 -41.9839 L -8.6935 -51.367 L -6.5145 -51.8981' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:36.8' inkscape:groupmode='layer' inkscape:label='Layer 86, z:36.8' transform='translate(280.0, 27167.0989)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate36.8' fill='#000' stroke='none' y='15' >Layer 86, z:36.8</text>
+			<path d='M -0.3858 -60.9313 L 1.0194 -60.2007 L 1.5671 -59.5369 L 0.7328 -59.3256 L -0.4109 -59.5024 L -3.0029 -59.4982 L -9.4309 -59.0604 L -10.2744 -59.3282 L -9.6861 -59.9893 L -9.0815 -60.295 L -6.1519 -61.2229 L -2.9732 -61.2797 z M -11.1073 -42.0285 L -8.5972 -51.6654 L -6.7039 -52.1268 L -1.4501 -52.1268 L -0.1824 -51.9445 L 0.1564 -51.6654 L 2.0612 -45.6835 L 3.5678 -42.0285 L 3.5678 -31.4596 L 7.026 -0.0 L -15.6049 0.0 L -11.1073 -31.4596 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -9.5236 -59.668 L -8.945 -59.9606 L -6.0931 -60.8639 L -2.9941 -60.9193 L -0.4961 -60.5829 L 1.4282 -59.5823 L -0.3835 -59.8624 L -3.0154 -59.8582 L -10.1019 -59.3756 L -9.5236 -59.668 M -7.5455 -51.5512 L -6.6607 -51.7668 L -1.4759 -51.7668 L -0.3335 -51.6025 L -0.1544 -51.455 L 1.7227 -45.5601 L 3.2078 -41.9572 L 3.2078 -31.4399 L 6.6243 -0.36 L -15.1898 -0.36 L -10.7473 -31.434 L -10.7473 -41.9824 L -8.303 -51.3666 L -7.5455 -51.5512' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:37.2' inkscape:groupmode='layer' inkscape:label='Layer 87, z:37.2' transform='translate(280.0, 27478.9334)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate37.2' fill='#000' stroke='none' y='15' >Layer 87, z:37.2</text>
+			<path d='M -0.1888 -60.6989 L 0.6988 -60.2374 L 1.2464 -59.5736 L 0.4122 -59.3623 L -0.2106 -59.4586 L -6.2965 -59.3188 L -9.2068 -59.0329 L -9.4719 -59.1323 L -9.8846 -58.8313 L -10.3738 -59.5129 L -9.3548 -60.0282 L -6.2669 -61.0063 L -2.9162 -61.0662 z M -10.6258 -42.0285 L -8.2047 -51.6654 L -6.8501 -51.9956 L -1.3054 -51.9956 L 0.0598 -51.7841 L 2.3158 -44.7206 L 3.4256 -42.0285 L 3.4256 -31.4596 L 6.8838 0.0 L -15.2967 -0.0 L -10.6258 -31.4596 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -7.5217 -51.4614 L -6.8069 -51.6356 L -1.3331 -51.6356 L -0.2154 -51.4625 L 1.9774 -44.5971 L 3.0656 -41.9572 L 3.0656 -31.4399 L 6.4821 -0.36 L -14.8793 -0.36 L -10.2658 -31.433 L -10.2658 -41.984 L -7.9085 -51.3671 L -7.5217 -51.4614' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:37.6' inkscape:groupmode='layer' inkscape:label='Layer 88, z:37.6' transform='translate(280.0, 27790.7678)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate37.6' fill='#000' stroke='none' y='15' >Layer 88, z:37.6</text>
+			<path d='M 0.0082 -60.4665 L 1.0173 -59.9418 L 0.6301 -59.3157 L -0.0103 -59.4147 L -6.4085 -59.2678 L -9.8254 -58.942 L -10.1719 -59.5022 L -6.3835 -60.7897 L -2.8592 -60.8526 z M -10.1386 -31.4596 L -10.1386 -42.0285 L -7.8122 -51.6654 L -6.9962 -51.8643 L -1.1607 -51.8643 L 0.0372 -51.6654 L 2.5707 -43.7574 L 3.2833 -42.0285 L 3.2833 -31.4596 L 6.7415 -0.0 L -14.9885 0.0 L -11.9033 -21.5809 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -9.6675 -59.3381 L -6.323 -60.4307 L -2.8801 -60.4922 L -0.1021 -60.1181 L 0.5071 -59.8013 L 0.4494 -59.7079 L 0.0133 -59.7753 L -6.4297 -59.6274 L -9.6544 -59.3199 L -9.6675 -59.3381 M -7.6081 -50.9765 L -7.5137 -51.3676 L -6.953 -51.5043 L -1.1904 -51.5043 L -0.2386 -51.3463 L 2.2323 -43.6337 L 2.9233 -41.9572 L 2.9233 -31.4399 L 6.3398 -0.36 L -14.5734 -0.36 L -11.5478 -21.5238 L -9.7786 -31.4277 L -9.7786 -41.9857 L -7.6081 -50.9765' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:38.0' inkscape:groupmode='layer' inkscape:label='Layer 89, z:38.0' transform='translate(280.0, 28102.6023)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate38.0' fill='#000' stroke='none' y='15' >Layer 89, z:38.0</text>
+			<path d='M 0.2052 -60.2341 L 0.6988 -59.9774 L 0.7533 -59.4595 L 0.1809 -59.3707 L -6.5213 -59.2168 L -9.1434 -58.9885 L -9.3991 -59.3265 L -9.2069 -59.7057 L -8.8948 -59.7322 L -8.7315 -59.8652 L -6.4967 -60.573 L -2.8021 -60.6391 z M -9.6513 -31.4596 L -9.6513 -42.0285 L -7.4051 -51.729 L -0.6189 -51.7087 L 0.0531 -48.8437 L 1.7292 -46.237 L 3.1411 -42.0285 L 3.1411 -31.4596 L 6.5993 0.0 L -14.6804 0.0 L -12.3128 -16.5607 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -7.2378 -50.8555 L -7.1191 -51.3681 L -0.9044 -51.3496 L -0.2832 -48.7011 L 1.4022 -46.08 L 2.7811 -41.9697 L 2.7811 -31.4399 L 6.1976 -0.36 L -14.2653 -0.36 L -11.9573 -16.5036 L -9.2913 -31.4277 L -9.2913 -41.9874 L -7.2378 -50.8555' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:38.4' inkscape:groupmode='layer' inkscape:label='Layer 90, z:38.4' transform='translate(280.0, 28414.4368)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate38.4' fill='#000' stroke='none' y='15' >Layer 90, z:38.4</text>
+			<path d='M 0.4022 -60.0018 L 0.3903 -59.3271 L -8.0275 -59.0429 L -8.1306 -59.1192 L -8.5339 -58.9914 L -8.7734 -59.2665 L -8.8311 -59.6543 L -6.6116 -60.3564 L -2.7451 -60.4255 z M -9.164 -31.4596 L -9.164 -42.0285 L -7.1764 -50.7762 L -6.5308 -51.1323 L -0.9826 -51.1323 L -0.6961 -49.2838 L 0.0524 -46.0929 L 2.6657 -42.0285 L 2.6657 -31.4596 L 3.0923 -30.6103 L 6.4571 0.0 L -14.3722 0.0 L -12.7224 -11.5404 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -1.8567 -50.7723 L -1.2911 -50.7723 L -1.0497 -49.215 L -0.2839 -45.9503 L 2.3057 -41.9228 L 2.3057 -31.3743 L 2.7415 -30.5066 L 6.0554 -0.36 L -13.9571 -0.36 L -12.3669 -11.4833 L -8.804 -31.4277 L -8.804 -41.9881 L -6.8611 -50.539 L -6.4381 -50.7723 L -1.8567 -50.7723' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:38.8' inkscape:groupmode='layer' inkscape:label='Layer 91, z:38.8' transform='translate(280.0, 28726.2712)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate38.8' fill='#000' stroke='none' y='15' >Layer 91, z:38.8</text>
+			<path d='M -0.5437 -59.9233 L -0.6607 -59.2572 L -7.881 -59.0272 L -8.1104 -59.5408 L -7.7907 -59.8027 L -6.7265 -60.1398 L -2.6881 -60.212 z M -8.6768 -31.4596 L -8.6768 -42.0285 L -7.0912 -48.9429 L -7.0986 -50.0332 L -1.0674 -50.0332 L 0.0517 -43.342 L 0.8962 -42.0285 L 0.8962 -31.4596 L 3.406 -26.4623 L 6.3149 0.0 L -14.064 0.0 L -13.1319 -6.5201 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -2.709 -49.6732 L -1.3722 -49.6732 L -0.2912 -43.2096 L 0.5362 -41.9228 L 0.5362 -31.3743 L 3.0552 -26.3586 L 5.9132 -0.36 L -13.6489 -0.36 L -12.7764 -6.463 L -8.3168 -31.4277 L -8.3168 -41.9878 L -6.7309 -48.9034 L -6.7361 -49.6732 L -2.709 -49.6732' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:39.2' inkscape:groupmode='layer' inkscape:label='Layer 92, z:39.2' transform='translate(280.0, 29038.1057)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate39.2' fill='#000' stroke='none' y='15' >Layer 92, z:39.2</text>
+			<path d='M -3.7007 -59.1826 L -3.7369 -59.2123 L -4.237 -59.1522 L -4.3256 -59.2058 L -4.7959 -59.1253 L -4.9308 -59.1972 L -5.3579 -59.0974 L -5.5385 -59.1871 L -5.9194 -59.0683 L -6.1449 -59.1754 L -6.4733 -59.0398 L -6.7747 -59.1691 L -7.3734 -59.0252 L -7.4592 -59.7275 L -6.7637 -59.9478 L -6.468 -59.821 L -6.1244 -59.9628 L -5.8649 -59.8395 L -5.477 -59.9606 L -5.2695 -59.8574 L -4.831 -59.96 L -4.6746 -59.8765 L -4.1825 -59.9608 L -4.0765 -59.8967 L -3.5175 -59.9639 L -3.4618 -59.9181 L -3.0157 -59.9527 L -2.3375 -59.5981 L -2.9852 -59.2117 z M -7.0061 -47.1096 L -7.0184 -48.934 L -1.1522 -48.934 L -0.0231 -41.6483 L -0.0485 -41.3167 L -0.4724 -39.52 L -3.6184 -31.6922 L -4.1941 -30.8896 L -4.7698 -31.6922 L -7.9158 -39.52 L -8.3428 -41.3167 z M 0.1368 -29.4484 L 3.7198 -22.3143 L 6.1727 0.0 L -13.7559 -0.0 L -8.5488 -29.4484 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -5.9915 -48.574 L -1.4607 -48.574 L -0.3852 -41.6343 L -0.4053 -41.3721 L -0.8165 -39.6291 L -4.1941 -31.2252 L -7.5718 -39.6293 L -7.9731 -41.3179 L -6.6458 -47.0698 L -6.656 -48.574 L -5.9915 -48.574 M -5.4762 -29.0884 L -0.0852 -29.0884 L 3.369 -22.2106 L 5.771 -0.36 L -13.3267 -0.36 L -8.2469 -29.0884 L -5.4762 -29.0884' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:39.6' inkscape:groupmode='layer' inkscape:label='Layer 93, z:39.6' transform='translate(280.0, 29349.9402)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate39.6' fill='#000' stroke='none' y='15' >Layer 93, z:39.6</text>
+			<path d='M -8.149 -39.9545 L -6.921 -45.2762 L -6.9382 -47.8349 L -1.2371 -47.8349 L -0.1655 -40.9205 L -0.2394 -39.9545 L -1.4747 -34.7191 L -3.614 -29.3961 L -4.1897 -28.5934 L -4.7654 -29.3961 L -6.9048 -34.7191 z M 6.0304 0.0 L -13.3221 -0.0 L -8.7491 -25.5994 L 0.3004 -25.5994 L 4.0335 -18.1662 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -6.5758 -47.4749 L -1.5456 -47.4749 L -0.5276 -40.9065 L -0.5962 -40.0099 L -1.8188 -34.8282 L -4.1897 -28.9291 L -6.5608 -34.8284 L -7.7793 -39.9557 L -6.5607 -45.2364 L -6.5758 -47.4749 M -7.164 -25.2394 L 0.0783 -25.2394 L 3.6827 -18.0625 L 5.6287 -0.36 L -12.8921 -0.36 L -8.4477 -25.2394 L -7.164 -25.2394' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:40.0' inkscape:groupmode='layer' inkscape:label='Layer 94, z:40.0' transform='translate(280.0, 29661.7746)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate40.0' fill='#000' stroke='none' y='15' >Layer 94, z:40.0</text>
+			<path d='M -7.9552 -38.5923 L -6.8359 -43.4429 L -6.858 -46.7358 L -1.3219 -46.7358 L -0.3079 -40.1928 L -0.4304 -38.5923 L -2.477 -29.9181 L -3.6096 -27.0999 L -4.1853 -26.2972 L -4.761 -27.0999 L -5.8937 -29.9181 z M 5.8882 -0.0 L -12.8349 0.0 L -8.9495 -21.7503 L 0.464 -21.7503 L 4.3473 -14.0182 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -6.4956 -46.3758 L -1.6304 -46.3758 L -0.67 -40.1788 L -0.7872 -38.6477 L -2.8211 -30.0272 L -4.1853 -26.6329 L -5.5497 -30.0275 L -7.5855 -38.5935 L -6.4756 -43.4031 L -6.4956 -46.3758 M -4.7636 -21.3903 L 0.242 -21.3903 L 3.9965 -13.9145 L 5.4865 -0.36 L -12.4049 -0.36 L -8.6481 -21.3903 L -4.7636 -21.3903' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:40.4' inkscape:groupmode='layer' inkscape:label='Layer 95, z:40.4' transform='translate(280.0, 29973.6091)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate40.4' fill='#000' stroke='none' y='15' >Layer 95, z:40.4</text>
+			<path d='M -7.7613 -37.2301 L -6.7507 -41.6096 L -6.7778 -45.6366 L -1.4067 -45.6366 L -0.4503 -39.465 L -0.6213 -37.2301 L -3.4793 -25.1172 L -3.6682 -24.6472 L -4.181 -24.0011 L -4.6938 -24.6474 L -4.8826 -25.1172 z M 5.746 -0.0 L -12.3476 -0.0 L -9.1498 -17.9012 L 0.6277 -17.9012 L 4.661 -9.8702 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -6.4154 -45.2766 L -1.7152 -45.2766 L -0.8124 -39.451 L -0.9781 -37.2855 L -3.8234 -25.2263 L -4.181 -24.3367 L -4.5386 -25.2265 L -7.3916 -37.2313 L -6.3904 -41.5698 L -6.4154 -45.2766 M -4.777 -17.5412 L 0.4056 -17.5412 L 4.3102 -9.7665 L 5.3443 -0.36 L -11.9176 -0.36 L -8.8484 -17.5412 L -4.777 -17.5412' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:40.8' inkscape:groupmode='layer' inkscape:label='Layer 96, z:40.8' transform='translate(280.0, 30285.4436)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate40.8' fill='#000' stroke='none' y='15' >Layer 96, z:40.8</text>
+			<path d='M -6.6976 -44.5375 L -1.4916 -44.5375 L -0.5927 -38.7373 L -0.8123 -35.8679 L -3.8232 -23.1066 L -4.5347 -23.1064 L -7.5675 -35.8679 L -6.6656 -39.7762 z M -9.3501 -14.0521 L 0.7913 -14.0521 L 4.9748 -5.7222 L 5.6038 0.0 L -11.8603 0.0 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -5.6707 -44.1775 L -1.8001 -44.1775 L -0.9548 -38.7233 L -1.1691 -35.9233 L -4.1082 -23.4665 L -4.2502 -23.4665 L -7.1978 -35.8691 L -6.3053 -39.7364 L -6.3352 -44.1775 L -5.6707 -44.1775 M -5.153 -13.6921 L 0.5693 -13.6921 L 4.624 -5.6185 L 5.2021 -0.36 L -11.4303 -0.36 L -9.0487 -13.6921 L -5.153 -13.6921' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:41.2' inkscape:groupmode='layer' inkscape:label='Layer 97, z:41.2' transform='translate(280.0, 30597.2781)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate41.2' fill='#000' stroke='none' y='15' >Layer 97, z:41.2</text>
+			<path d='M -6.6174 -43.4384 L -1.5764 -43.4384 L -0.7351 -38.0095 L -1.0032 -34.5056 L -3.679 -23.1651 L -4.178 -22.4097 L -4.6783 -23.1643 L -7.3736 -34.5056 L -6.5805 -37.9429 z M -9.5505 -10.203 L 0.9549 -10.203 L 5.2885 -1.5742 L 5.4616 0.0 L -11.3731 0.0 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -5.5905 -43.0784 L -1.8849 -43.0784 L -1.0972 -37.9955 L -1.36 -34.561 L -4.1782 -22.6171 L -7.0039 -34.5068 L -6.2202 -37.9031 L -6.255 -43.0784 L -5.5905 -43.0784 M -2.7341 -9.843 L 0.7328 -9.843 L 4.9377 -1.4705 L 5.0598 -0.36 L -10.9431 -0.36 L -9.2491 -9.843 L -2.7341 -9.843' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:41.6' inkscape:groupmode='layer' inkscape:label='Layer 98, z:41.6' transform='translate(280.0, 30909.1125)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate41.6' fill='#000' stroke='none' y='15' >Layer 98, z:41.6</text>
+			<path d='M -3.7008 -22.5197 L -3.8072 -21.2312 L -4.5491 -21.2312 L -4.655 -22.5197 L -7.1798 -33.1434 L -6.4954 -36.1096 L -6.5372 -42.3392 L -1.6613 -42.3392 L -0.8775 -37.2818 L -1.1942 -33.1434 z M -9.7508 -6.3539 L 1.1185 -6.3539 L 4.0188 -0.5791 L 3.6616 0.0 L -10.8858 -0.0 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -5.5103 -41.9792 L -1.9698 -41.9792 L -1.2396 -37.2678 L -1.551 -33.1988 L -4.0574 -22.5762 L -4.1387 -21.5912 L -4.2174 -21.5912 L -4.2984 -22.5764 L -6.8101 -33.1446 L -6.1351 -36.0698 L -6.1748 -41.9792 L -5.5103 -41.9792 M -4.9913 -5.9939 L 0.8965 -5.9939 L 3.6069 -0.5971 L 3.4607 -0.36 L -10.4558 -0.36 L -9.4494 -5.9939 L -4.9913 -5.9939' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:42.0' inkscape:groupmode='layer' inkscape:label='Layer 99, z:42.0' transform='translate(280.0, 31220.947)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate42.0' fill='#000' stroke='none' y='15' >Layer 99, z:42.0</text>
+			<path d='M -3.4936 -22.8449 L -3.8101 -19.0111 L -4.547 -19.0111 L -4.8622 -22.8449 L -6.986 -31.7812 L -6.4102 -34.2762 L -6.457 -41.2401 L -1.7461 -41.2401 L -1.0199 -36.554 L -1.3851 -31.7812 z M -9.9511 -2.5048 L 1.2821 -2.5048 L 2.2493 -0.5791 L 1.8921 0.0 L -10.3986 0.0 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -5.4301 -40.8801 L -2.0546 -40.8801 L -1.382 -36.54 L -1.7419 -31.8366 L -3.8502 -22.9014 L -4.1416 -19.3711 L -4.2153 -19.3711 L -4.5056 -22.9016 L -6.6163 -31.7824 L -6.0499 -34.2364 L -6.0946 -40.8801 L -5.4301 -40.8801 M -1.0346 -2.1448 L 1.0601 -2.1448 L 1.8374 -0.597 L 1.6912 -0.36 L -9.9686 -0.36 L -9.6497 -2.1448 L -1.0346 -2.1448' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:42.4' inkscape:groupmode='layer' inkscape:label='Layer 100, z:42.4' transform='translate(280.0, 31532.7815)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate42.4' fill='#000' stroke='none' y='15' >Layer 100, z:42.4</text>
+			<path d='M -3.2864 -23.17 L -3.8118 -16.8075 L -4.5463 -16.8075 L -5.0694 -23.17 L -6.7921 -30.419 L -6.3251 -32.4429 L -6.3768 -40.1409 L -1.8309 -40.1409 L -1.1622 -35.8263 L -1.5761 -30.419 z M -4.354 -16.5989 L -4.2363 -16.3913 L -4.1145 -16.3912 L -4.1482 -16.3322 L -3.9965 -16.5986 L -3.9787 -17.3095 L -4.0451 -17.3618 L -4.3042 -17.3618 L -4.3705 -17.3096 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -3.9765 -17.5598 L -4.3727 -17.5599 L -4.5708 -17.4039 L -4.5508 -16.5445 L -4.3516 -16.1934 L -3.9995 -16.1931 L -3.7998 -16.5439 L -3.7783 -17.4037 L -3.9765 -17.5598' fill='none' stroke='#fa0' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:42.8' inkscape:groupmode='layer' inkscape:label='Layer 101, z:42.8' transform='translate(280.0, 31844.6159)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate42.8' fill='#000' stroke='none' y='15' >Layer 101, z:42.8</text>
+			<path d='M -3.0793 -23.4952 L -3.5388 -17.9301 L -4.1747 -17.5515 L -4.8189 -17.9301 L -5.2765 -23.4952 L -6.5983 -29.0568 L -6.24 -30.6096 L -6.2966 -39.0418 L -1.9158 -39.0418 L -1.3046 -35.0985 L -1.767 -29.0568 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -5.2697 -38.6818 L -2.2243 -38.6818 L -1.6667 -35.0845 L -2.1238 -29.1122 L -3.4359 -23.5517 L -3.8823 -18.1445 L -4.1759 -17.9698 L -4.4755 -18.1458 L -4.9199 -23.5519 L -6.2286 -29.058 L -5.8797 -30.5698 L -5.9342 -38.6818 L -5.2697 -38.6818' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:43.2' inkscape:groupmode='layer' inkscape:label='Layer 102, z:43.2' transform='translate(280.0, 32156.4504)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate43.2' fill='#000' stroke='none' y='15' >Layer 102, z:43.2</text>
+			<path d='M -2.8721 -23.8203 L -3.3824 -17.6403 L -3.8285 -17.574 L -4.1746 -17.8455 L -4.5196 -17.574 L -4.9756 -17.6403 L -5.4837 -23.8203 L -6.4044 -27.6946 L -6.1548 -28.7762 L -6.2164 -37.9427 L -2.0006 -37.9427 L -1.447 -34.3708 L -1.958 -27.6946 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -5.1895 -37.5827 L -2.3091 -37.5827 L -1.8091 -34.3568 L -2.3148 -27.75 L -3.2287 -23.8768 L -3.7177 -17.9544 L -3.7282 -17.9529 L -4.175 -18.3033 L -4.6208 -17.9525 L -4.6403 -17.9553 L -5.1271 -23.877 L -6.0347 -27.6958 L -5.7945 -28.7364 L -5.854 -37.5827 L -5.1895 -37.5827' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:43.6' inkscape:groupmode='layer' inkscape:label='Layer 103, z:43.6' transform='translate(280.0, 32468.2849)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate43.6' fill='#000' stroke='none' y='15' >Layer 103, z:43.6</text>
+			<path d='M -2.6649 -24.1455 L -3.1752 -17.9655 L -3.6715 -17.7447 L -4.0215 -18.0194 L -4.3274 -18.0192 L -4.6761 -17.7447 L -5.1828 -17.9655 L -5.6909 -24.1455 L -6.2106 -26.3323 L -6.0697 -26.9429 L -6.1362 -36.8435 L -2.0854 -36.8435 L -1.5894 -33.643 L -2.1489 -26.3323 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -5.1093 -36.4835 L -2.3939 -36.4835 L -1.9515 -33.629 L -2.5057 -26.3877 L -3.0215 -24.202 L -3.5164 -18.2077 L -3.6197 -18.1617 L -3.8973 -18.3796 L -4.4522 -18.379 L -4.7296 -18.1607 L -4.8416 -18.2095 L -5.3343 -24.2022 L -5.8409 -26.3335 L -5.7094 -26.9031 L -5.7738 -36.4835 L -5.1093 -36.4835' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:44.0' inkscape:groupmode='layer' inkscape:label='Layer 104, z:44.0' transform='translate(280.0, 32780.1194)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate44.0' fill='#000' stroke='none' y='15' >Layer 104, z:44.0</text>
+			<path d='M -2.968 -18.2907 L -3.5144 -17.9155 L -3.9617 -18.2665 L -4.3872 -18.266 L -4.8326 -17.9155 L -5.3899 -18.2907 L -5.8981 -24.4707 L -6.0069 -24.9283 L -6.0552 -35.7444 L -2.1703 -35.7444 L -1.7318 -32.9153 L -2.3399 -24.9701 L -2.4577 -24.4707 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -5.0306 -35.3844 L -2.4788 -35.3844 L -2.0939 -32.9013 L -2.6967 -25.0255 L -2.8143 -24.5272 L -3.3127 -18.4907 L -3.5002 -18.3619 L -3.8375 -18.6266 L -4.512 -18.6259 L -4.8491 -18.3606 L -5.0453 -18.4927 L -5.5415 -24.5274 L -5.6471 -24.9713 L -5.6936 -35.3844 L -5.0306 -35.3844' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:44.4' inkscape:groupmode='layer' inkscape:label='Layer 105, z:44.4' transform='translate(280.0, 33091.9538)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate44.4' fill='#000' stroke='none' y='15' >Layer 105, z:44.4</text>
+			<path d='M -2.7909 -18.2516 L -3.3573 -18.0863 L -4.1744 -18.7274 L -4.989 -18.0863 L -5.5671 -18.2516 L -5.9894 -23.387 L -5.9727 -34.6452 L -2.2551 -34.6452 L -1.8742 -32.1876 L -2.4368 -24.8366 L -2.3661 -23.3968 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -4.9542 -34.2852 L -2.5636 -34.2852 L -2.2363 -32.1736 L -2.7975 -24.8415 L -2.7268 -23.4028 L -3.1293 -18.5279 L -3.2806 -18.4837 L -4.1747 -19.1853 L -5.067 -18.483 L -5.2288 -18.5293 L -5.6294 -23.4015 L -5.6133 -34.2852 L -4.9542 -34.2852' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:44.8' inkscape:groupmode='layer' inkscape:label='Layer 106, z:44.8' transform='translate(280.0, 33403.7883)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate44.8' fill='#000' stroke='none' y='15' >Layer 106, z:44.8</text>
+			<path d='M -2.5871 -18.5359 L -3.2002 -18.257 L -4.0332 -18.9106 L -4.3151 -18.9106 L -5.1455 -18.257 L -5.771 -18.5359 L -6.034 -21.7346 L -5.8397 -25.2197 L -5.8955 -33.5461 L -2.3399 -33.5461 L -2.0166 -31.4598 L -2.4942 -25.2197 L -2.323 -21.7346 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -4.8686 -33.1861 L -2.6484 -33.1861 L -2.3787 -31.4458 L -2.8549 -25.2246 L -2.6837 -21.7406 L -2.9285 -18.7761 L -3.1501 -18.6753 L -3.9088 -19.2706 L -4.4398 -19.2706 L -5.1974 -18.6743 L -5.4297 -18.7779 L -5.6732 -21.7394 L -5.4796 -25.2109 L -5.5331 -33.1861 L -4.8686 -33.1861' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:45.2' inkscape:groupmode='layer' inkscape:label='Layer 107, z:45.2' transform='translate(280.0, 33715.6228)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate45.2' fill='#000' stroke='none' y='15' >Layer 107, z:45.2</text>
+			<path d='M -2.3815 -18.8423 L -2.5445 -18.3417 L -3.1732 -18.5265 L -4.2524 -17.6358 L -5.1751 -18.5289 L -5.8153 -18.3343 L -5.9765 -18.8399 L -6.0778 -20.0725 L -5.7694 -25.6028 L -5.8153 -32.447 L -2.4248 -32.447 L -2.159 -30.7321 L -2.5516 -25.6028 L -2.2799 -20.0725 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -4.7884 -32.087 L -2.7333 -32.087 L -2.5211 -30.7181 L -2.9123 -25.6077 L -2.6406 -20.0785 L -2.7441 -18.8254 L -2.7066 -18.6145 L -3.1768 -18.9902 L -4.2333 -18.1183 L -5.1499 -19.0055 L -5.6485 -18.6158 L -5.614 -18.8252 L -5.717 -20.0773 L -5.4093 -25.594 L -5.4529 -32.087 L -4.7884 -32.087' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:45.6' inkscape:groupmode='layer' inkscape:label='Layer 108, z:45.6' transform='translate(280.0, 34027.4572)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate45.6' fill='#000' stroke='none' y='15' >Layer 108, z:45.6</text>
+			<path d='M -5.6425 -17.8847 L -6.0001 -17.858 L -6.0944 -18.8924 L -5.6992 -25.9859 L -5.7351 -31.3478 L -2.5096 -31.3478 L -2.3014 -30.0043 L -2.6089 -25.9866 L -2.2549 -18.4166 L -2.7898 -18.5087 L -2.9961 -18.2314 L -3.0695 -17.5182 L -4.3195 -16.4866 L -5.3853 -17.5182 L -5.3833 -17.7907 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -4.7082 -30.9878 L -2.8181 -30.9878 L -2.6635 -29.9903 L -2.9697 -25.9908 L -2.5883 -18.8275 L -2.933 -18.9194 L -3.344 -18.3668 L -3.4125 -17.7019 L -4.3004 -16.9691 L -5.0242 -17.6697 L -5.0214 -18.0424 L -5.6748 -18.2793 L -5.771 -18.2254 L -5.3391 -25.9771 L -5.3727 -30.9878 L -4.7082 -30.9878' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:46.0' inkscape:groupmode='layer' inkscape:label='Layer 109, z:46.0' transform='translate(280.0, 34339.2917)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate46.0' fill='#000' stroke='none' y='15' >Layer 109, z:46.0</text>
+			<path d='M -5.435 -18.7102 L -6.0579 -18.6763 L -5.6289 -26.369 L -5.6549 -30.2487 L -2.5945 -30.2487 L -2.4438 -29.2766 L -2.6663 -26.369 L -2.2884 -18.6765 L -2.8954 -18.7102 L -3.1366 -16.369 L -4.3866 -15.3374 L -5.4524 -16.369 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -4.628 -29.8887 L -2.903 -29.8887 L -2.8059 -29.2626 L -3.027 -26.3739 L -2.6676 -19.0581 L -3.2183 -19.0887 L -3.4796 -16.5527 L -4.3675 -15.8199 L -5.0913 -16.5205 L -5.0722 -19.0905 L -5.6761 -19.0576 L -5.2688 -26.3602 L -5.2925 -29.8887 L -4.628 -29.8887' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:46.4' inkscape:groupmode='layer' inkscape:label='Layer 110, z:46.4' transform='translate(280.0, 34651.1262)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate46.4' fill='#000' stroke='none' y='15' >Layer 110, z:46.4</text>
+			<path d='M -5.4925 -18.8484 L -5.9689 -19.3939 L -5.5587 -26.7521 L -5.5747 -29.1496 L -2.6793 -29.1496 L -2.5862 -28.5488 L -2.7237 -26.7521 L -2.3622 -19.3939 L -2.8299 -18.8484 L -3.2037 -15.2199 L -4.4538 -14.1881 L -5.5195 -15.2199 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -4.1204 -28.7896 L -2.9878 -28.7896 L -2.9483 -28.5348 L -3.0844 -26.757 L -2.7288 -19.5194 L -3.1765 -18.9973 L -3.5467 -15.4036 L -4.4346 -14.6707 L -5.1584 -15.3713 L -5.1315 -18.9823 L -5.6013 -19.5202 L -5.1986 -26.7433 L -5.2123 -28.7896 L -4.1204 -28.7896' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:46.8' inkscape:groupmode='layer' inkscape:label='Layer 111, z:46.8' transform='translate(280.0, 34962.9606)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate46.8' fill='#000' stroke='none' y='15' >Layer 111, z:46.8</text>
+			<path d='M -5.5501 -18.9866 L -5.9437 -19.3716 L -5.4945 -28.0504 L -3.4121 -28.0504 L -2.7286 -27.8211 L -2.7811 -27.1351 L -2.4063 -19.5065 L -2.7643 -18.9866 L -3.2708 -14.0707 L -3.5741 -13.8203 L -4.4821 -13.7257 L -5.3279 -13.8203 L -5.5866 -14.0707 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -4.5259 -27.6904 L -3.4709 -27.6904 L -3.1089 -27.569 L -3.1418 -27.14 L -2.7719 -19.6104 L -3.113 -19.115 L -3.6138 -14.2544 L -3.7195 -14.1671 L -4.4807 -14.0878 L -5.1658 -14.1644 L -5.2255 -14.2222 L -5.189 -19.1369 L -5.5758 -19.5153 L -5.1527 -27.6904 L -4.5259 -27.6904' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:47.2' inkscape:groupmode='layer' inkscape:label='Layer 112, z:47.2' transform='translate(280.0, 35274.7951)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate47.2' fill='#000' stroke='none' y='15' >Layer 112, z:47.2</text>
+			<path d='M -5.8442 -19.8767 L -5.4552 -26.8545 L -2.8059 -26.8545 L -2.463 -19.8767 L -2.7303 -19.1891 L -3.2486 -13.7886 L -3.4059 -13.3995 L -4.5022 -13.2516 L -5.6264 -13.4386 L -5.5749 -19.1883 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -5.1494 -25.8712 L -5.1147 -26.4945 L -3.1486 -26.4945 L -2.8264 -19.9356 L -3.0839 -19.2731 L -3.602 -13.875 L -3.6613 -13.7283 L -4.4966 -13.6156 L -5.2637 -13.7432 L -5.2143 -19.2547 L -5.4804 -19.9349 L -5.1494 -25.8712' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:47.6' inkscape:groupmode='layer' inkscape:label='Layer 113, z:47.6' transform='translate(280.0, 35586.6296)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate47.6' fill='#000' stroke='none' y='15' >Layer 113, z:47.6</text>
+			<path d='M -5.7691 -20.3472 L -5.4817 -25.5022 L -2.778 -25.5022 L -2.5247 -20.3471 L -2.877 -19.76 L -2.8155 -18.4317 L -2.6612 -17.9952 L -2.7855 -17.7844 L -3.183 -13.9269 L -3.5741 -12.9601 L -3.9777 -12.8914 L -4.5304 -12.9545 L -5.0744 -12.8914 L -5.4549 -12.9601 L -5.7048 -13.9269 L -5.6857 -16.496 L -5.79 -16.8736 L -5.6809 -17.1364 L -5.7173 -17.4369 L -5.4145 -19.76 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -5.106 -19.3417 L -5.0413 -19.8384 L -5.4035 -20.4381 L -5.1412 -25.1422 L -3.1207 -25.1422 L -2.8896 -20.4386 L -3.2416 -19.852 L -3.1726 -18.3619 L -3.0566 -18.0335 L -3.1355 -17.8995 L -3.5359 -14.0146 L -3.8325 -13.2813 L -3.9877 -13.2549 L -4.5307 -13.3169 L -5.0629 -13.2551 L -5.1641 -13.2734 L -5.3445 -13.9714 L -5.3253 -16.5435 L -5.41 -16.85 L -5.3122 -17.0858 L -5.3545 -17.4353 L -5.106 -19.3417' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:48.0' inkscape:groupmode='layer' inkscape:label='Layer 114, z:48.0' transform='translate(280.0, 35898.4641)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate48.0' fill='#000' stroke='none' y='15' >Layer 114, z:48.0</text>
+			<path d='M -5.444 -12.8939 L -5.7623 -14.0651 L -5.748 -15.9872 L -5.883 -16.1424 L -5.7432 -16.6352 L -5.2537 -20.3309 L -5.7142 -20.4549 L -5.5082 -24.1499 L -2.7501 -24.1499 L -2.5686 -20.4549 L -3.0238 -20.3309 L -2.8526 -16.6352 L -3.1175 -14.0651 L -3.6078 -12.8946 L -4.5304 -13.0 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -5.1162 -18.627 L -4.8554 -20.5964 L -5.3385 -20.7266 L -5.1677 -23.7899 L -3.0928 -23.7899 L -2.9423 -20.7262 L -3.3968 -20.6024 L -3.2135 -16.6454 L -3.4701 -14.155 L -3.8354 -13.2829 L -4.5307 -13.3624 L -5.1779 -13.2873 L -5.4019 -14.1118 L -5.387 -16.1207 L -5.4835 -16.2316 L -5.3897 -16.5621 L -5.1162 -18.627' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:48.4' inkscape:groupmode='layer' inkscape:label='Layer 115, z:48.4' transform='translate(280.0, 36210.2985)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate48.4' fill='#000' stroke='none' y='15' >Layer 115, z:48.4</text>
+			<path d='M -5.4974 -13.0863 L -5.8198 -14.2034 L -5.815 -14.8447 L -5.9519 -15.3143 L -5.8103 -15.486 L -5.8608 -15.8383 L -5.7048 -17.1185 L -5.5582 -17.3898 L -5.3911 -18.6512 L -5.4959 -18.838 L -5.2225 -19.9243 L -4.9727 -20.1389 L -4.9353 -20.2615 L -5.0043 -20.2725 L -5.2384 -20.1569 L -5.6743 -20.2938 L -5.5347 -22.7976 L -2.7222 -22.7976 L -2.5992 -20.2937 L -3.0307 -20.1569 L -3.27 -20.2755 L -3.3716 -20.2631 L -3.3403 -20.1351 L -3.1253 -19.9243 L -2.9197 -15.486 L -3.0519 -14.2034 L -3.5404 -13.0863 L -4.064 -12.9923 L -4.5303 -13.0455 L -4.9893 -12.9923 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -5.1314 -17.8706 L -5.0185 -18.7228 L -5.1172 -18.8988 L -4.9143 -19.7145 L -4.6589 -19.9339 L -4.4704 -20.5519 L -5.0608 -20.6461 L -5.2683 -20.5436 L -5.2993 -20.5534 L -5.1942 -22.4376 L -3.0649 -22.4376 L -2.9724 -20.5531 L -3.001 -20.544 L -3.2066 -20.6459 L -3.8174 -20.5715 L -3.6657 -19.9499 L -3.4784 -19.7663 L -3.2806 -15.4962 L -3.4042 -14.2962 L -3.7932 -13.4067 L -4.0756 -13.356 L -4.5306 -13.4079 L -4.977 -13.3561 L -5.2132 -13.3998 L -5.4594 -14.253 L -5.4547 -14.8948 L -5.553 -15.2322 L -5.4314 -15.3796 L -5.4977 -15.8428 L -5.356 -17.0066 L -5.21 -17.2769 L -5.1314 -17.8706' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:48.8' inkscape:groupmode='layer' inkscape:label='Layer 116, z:48.8' transform='translate(280.0, 36522.133)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate48.8' fill='#000' stroke='none' y='15' >Layer 116, z:48.8</text>
+			<path d='M -2.7263 -19.4598 L -3.5536 -19.7254 L -3.8959 -19.8951 L -4.3653 -19.8951 L -4.7104 -19.7247 L -5.5402 -19.4615 L -5.6149 -20.4827 L -5.5612 -21.4454 L -2.6943 -21.4454 L -2.6469 -20.4808 z M -5.5332 -13.214 L -5.8766 -14.3432 L -5.2896 -18.7751 L -4.172 -19.7352 L -3.1924 -18.7751 L -2.9874 -14.3411 L -3.4997 -13.214 L -4.3189 -13.0669 L -4.5303 -13.091 L -4.7384 -13.0669 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -5.2207 -21.0854 L -3.037 -21.0854 L -2.9759 -19.8409 L -3.8116 -20.2551 L -4.4493 -20.2551 L -5.2902 -19.8399 L -5.2207 -21.0854 M -5.2206 -16.5549 L -4.9508 -18.5916 L -4.188 -19.2468 L -3.5455 -18.6171 L -3.351 -14.4111 L -3.7493 -13.5349 L -4.3306 -13.4306 L -4.5306 -13.4534 L -4.7261 -13.4307 L -5.2525 -13.5282 L -5.5095 -14.3733 L -5.2206 -16.5549' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:49.2' inkscape:groupmode='layer' inkscape:label='Layer 117, z:49.2' transform='translate(280.0, 36833.9675)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate49.2' fill='#000' stroke='none' y='15' >Layer 117, z:49.2</text>
+			<path d='M -3.1686 -18.844 L -3.5053 -19.0109 L -4.7529 -19.0109 L -5.0909 -18.844 L -5.6541 -18.9024 L -5.5877 -20.0931 L -2.6665 -20.0931 L -2.608 -18.9022 z M -5.5312 -13.4354 L -5.7158 -14.9141 L -5.3566 -17.6259 L -4.2391 -18.586 L -3.2595 -17.6259 L -3.1339 -14.9141 L -3.204 -14.3387 L -3.4932 -13.4354 L -4.5283 -13.1992 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -5.2472 -19.7331 L -3.0092 -19.7331 L -2.9843 -19.2251 L -3.1021 -19.2128 L -3.421 -19.3709 L -4.8369 -19.3709 L -5.1571 -19.2128 L -5.2755 -19.2251 L -5.2472 -19.7331 M -4.2551 -18.0976 L -3.6126 -17.4679 L -3.4949 -14.9276 L -3.5572 -14.416 L -3.7735 -13.7407 L -4.527 -13.5687 L -5.205 -13.7284 L -5.3528 -14.9127 L -5.0178 -17.4424 L -4.2551 -18.0976' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:49.6' inkscape:groupmode='layer' inkscape:label='Layer 118, z:49.6' transform='translate(280.0, 37145.8019)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate49.6' fill='#000' stroke='none' y='15' >Layer 118, z:49.6</text>
+			<path d='M -5.5551 -15.485 L -5.4237 -16.4766 L -4.3062 -17.4368 L -3.3266 -16.4766 L -3.2807 -15.485 L -3.4206 -14.3364 L -3.5672 -13.8784 L -4.5233 -13.61 L -5.4377 -13.8472 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -5.0849 -16.2931 L -4.3222 -16.9484 L -3.6797 -16.3186 L -3.6417 -15.4985 L -3.7738 -14.4137 L -3.851 -14.1726 L -4.527 -13.9829 L -5.0971 -14.1308 L -5.1934 -15.4741 L -5.0849 -16.2931' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+		<g id='z:50.0' inkscape:groupmode='layer' inkscape:label='Layer 119, z:50.0' transform='translate(280.0, 37457.6364)'>
+<!--id='layerTextTemplate' must be there so that the text could be removed if necessary-->
+			<text id='layerTextTemplate50.0' fill='#000' stroke='none' y='15' >Layer 119, z:50.0</text>
+			<path d='M -5.3533 -14.4266 L -5.0004 -15.7488 L -4.6869 -16.0182 L -4.0984 -16.0182 L -3.8236 -15.7488 L -3.86 -15.1313 L -3.743 -14.779 L -4.073 -14.1731 L -4.5048 -14.0246 L -4.9267 -14.1731 z' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+			<path d='M -4.6813 -15.5483 L -4.5534 -15.6582 L -4.2455 -15.6582 L -4.1926 -15.6064 L -4.2234 -15.0835 L -4.1339 -14.8139 L -4.3223 -14.468 L -4.5034 -14.4058 L -4.7735 -14.5008 L -4.9352 -14.5969 L -4.6813 -15.5483' fill='none' stroke='#f00' transform='scale(3.7, -3.7) translate(16.8193, 72.7931)' />
+		</g>
+	</g>
+<!--End Layer Data-->
+<!--beginningOfControlSection='true' must be there or else the control boxes will be carved-->
+	<g id='controls' beginningOfControlSection='true' inkscape:groupmode='layer' inkscape:label='Controls'>
+<!--id='isoControlBox' must be there so that the controls could be removed if necessary-->
+		<g id='isoControlBox' fill='#000' font-family='Arial' font-size='15px' font-weight='bold' transform='translate(20, 60)' visibility='hidden'>
+			<rect fill='silver' height='720' stroke='gray' stroke-width='4px' width='240' />
+			<circle id='globe' cx='120' cy='120' fill='gray' r='100' />
+			<circle id='cover' cx='120' cy='120' fill='silver' r='33' />
+			<circle id='observer' fill='darkslateblue' r='12' />
+			<text id='latitudeIso' x='20' y='260' >Latitude</text>
+			<text fill='darkslateblue' onclick='displayIsoByLatitude(globalLatitude-1.0)' x='198' y='260' >&lt;</text>
+			<text fill='darkslateblue' onclick='displayIsoByLatitude(globalLatitude+1.0)' x='213' y='260' >&gt;</text>
+			<text id='longitudeIso' x='20' y='280' >Longitude</text>
+			<text fill='darkslateblue' onclick='displayIsoByLongitude(globalLongitude-1.0)' x='198' y='280' >&lt;</text>
+			<text fill='darkslateblue' onclick='displayIsoByLongitude(globalLongitude+1.0)' x='213' y='280' >&gt;</text>
+			<text x='20' y='300' >Scale</text>
+			<text id='scaleIso' x='65' y='300' >1</text>
+			<text fill='darkslateblue' onclick='changeScaleIso(globalZoomScale/2)' x='198' y='300' >&lt;</text>
+			<text fill='darkslateblue' onclick='changeScaleIso(globalZoomScale*2)' x='213' y='300' >&gt;</text>
+			<g transform='translate(20, 340)'>
+				<text >Min</text>
+				<text id='minXIso' y='20' >X: -16.8193 mm</text>
+				<text id='minYIso' y='40' >Y: -72.7931 mm</text>
+				<text id='minZIso' y='60' >Z: 2.2 mm</text>
+			</g>
+			<g transform='translate(20, 440)'>
+				<text >Max</text>
+				<text id='maxXIso' y='20' >X: 16.8039 mm</text>
+				<text id='maxYIso' y='40' >Y: 0.0 mm</text>
+				<text id='maxZIso' y='60' >Z: 50.2 mm</text>
+			</g>
+			<g transform='translate(20, 540)'>
+				<text >Dimension</text>
+				<text id='dimXIso' y='20' >X: 33.6232 mm</text>
+				<text id='dimYIso' y='40' >Y: 72.7931 mm</text>
+				<text id='dimZIso' y='60' >Z: 48.0 mm</text>
+			</g>
+			<g transform='translate(20, 640)'>
+				<text >Statistics</text>
+				<text id='layerHeightIso' y='20' >Layer Height: 0.4 mm</text>
+				<text id='numberOfLayersIso' y='40' >Number of Layers: 120</text>
+				<text id='volumeIso' y='60' >Volume: 0.0 cm3</text>
+			</g>
+		</g>
+<!--id='layerControlBox' must be there so that the controls could be removed if necessary-->
+		<g id='layerControlBox' fill='#000' font-family='Arial' font-size='15px' font-weight='bold' transform='translate(20, 60)' visibility='hidden'>
+			<rect fill='silver' height='720' stroke='gray' stroke-width='4px' width='240' />
+			<path d='M 66 164 h76 v6 l18 -9 l-18 -9 v6 h-70 v-70 h6 l-9 -18 l-9 18 h6 z' stroke-width='0' />
+<!--<path stroke='#000' stroke-width='3' d='M 20 20 h5 l-5 -10 l-5 10 h5 v35 h35 v-5 l10 5 l-10 5 v-5 h-35 z'/>-->
+			<text text-anchor='middle' x='68' y='64' >Y</text>
+			<text x='165' y='166' >X</text>
+			<text id='minIndexLayer' x='20' y='245' >0</text>
+			<rect id='slider' fill='gray' height='24' width='170' x='32' y='230' />
+			<circle id='thumb' cx='42' cy='242' fill='darkslateblue' r='12' />
+			<text id='maxIndexLayer' x='203' y='245' >1</text>
+			<text id='currentIndexLayer' x='20' y='280' >Layer</text>
+			<text id='decreaseLayerIndex' fill='darkslateblue' onclick='displayLayer(globalLayerIndex-1)' x='198' y='280' >&lt;</text>
+			<text id='increaseLayerIndex' fill='darkslateblue' onclick='displayLayer(globalLayerIndex+1)' x='213' y='280' >&gt;</text>
+			<text x='20' y='300' >Scale</text>
+			<text id='scaleLayer' x='65' y='300' >1</text>
+			<text fill='darkslateblue' onclick='changeScaleLayer(globalZoomScale/2)' x='198' y='300' >&lt;</text>
+			<text fill='darkslateblue' onclick='changeScaleLayer(globalZoomScale*2)' x='213' y='300' >&gt;</text>
+			<g transform='translate(20, 340)'>
+				<text >Min</text>
+				<text id='minXLayer' y='20' >X: -16.8193 mm</text>
+				<text id='minYLayer' y='40' >Y: -72.7931 mm</text>
+				<text id='minZLayer' y='60' >Z: 2.2 mm</text>
+			</g>
+			<g transform='translate(20, 440)'>
+				<text >Max</text>
+				<text id='maxXLayer' y='20' >X: 16.8039 mm</text>
+				<text id='maxYLayer' y='40' >Y: 0.0 mm</text>
+				<text id='maxZLayer' y='60' >Z: 50.2 mm</text>
+			</g>
+			<g transform='translate(20, 540)'>
+				<text >Dimension</text>
+				<text id='dimXLayer' y='20' >X: 33.6232 mm</text>
+				<text id='dimYLayer' y='40' >Y: 72.7931 mm</text>
+				<text id='dimZLayer' y='60' >Z: 48.0 mm</text>
+			</g>
+			<g transform='translate(20, 640)'>
+				<text >Statistics</text>
+				<text id='layerHeightLayer' y='20' >Layer Height: 0.4 mm</text>
+				<text id='numberOfLayersLayer' y='40' >Number of Layers: 120</text>
+				<text id='volumeLayer' y='60' >Volume: 0.0 cm3</text>
+			</g>
+		</g>
+<!--id='scrollControlBox' must be there so that the controls could be removed if necessary-->
+		<g id='scrollControlBox' fill='#000' font-family='Arial' font-size='15px' font-weight='bold' transform='translate(20, 60)' visibility='visible'>
+			<rect fill='silver' height='720' stroke='gray' stroke-width='4px' width='240' />
+			<path d='M 66 164 h76 v6 l18 -9 l-18 -9 v6 h-70 v-70 h6 l-9 -18 l-9 18 h6 z' stroke-width='0' />
+			<text text-anchor='middle' x='68' y='64' >Y</text>
+			<text x='165' y='166' >X</text>
+			<text x='20' y='300' >Scale</text>
+			<text id='scaleScroll' x='65' y='300' >: 1</text>
+			<text fill='darkslateblue' onclick='changeScaleScroll(globalZoomScale/2)' x='198' y='300' >&lt;</text>
+			<text fill='darkslateblue' onclick='changeScaleScroll(globalZoomScale*2)' x='213' y='300' >&gt;</text>
+			<g transform='translate(20, 340)'>
+				<text >Min</text>
+				<text id='minXScroll' y='20' >X: -16.8193 mm</text>
+				<text id='minYScroll' y='40' >Y: -72.7931 mm</text>
+				<text id='minZScroll' y='60' >Z: 2.2 mm</text>
+			</g>
+			<g transform='translate(20, 440)'>
+				<text >Max</text>
+				<text id='maxXScroll' y='20' >X: 16.8039 mm</text>
+				<text id='maxYScroll' y='40' >Y: 0.0 mm</text>
+				<text id='maxZScroll' y='60' >Z: 50.2 mm</text>
+			</g>
+			<g transform='translate(20, 540)'>
+				<text >Dimension</text>
+				<text id='dimXScroll' y='20' >X: 33.6232 mm</text>
+				<text id='dimYScroll' y='40' >Y: 72.7931 mm</text>
+				<text id='dimZScroll' y='60' >Z: 48.0 mm</text>
+			</g>
+			<g transform='translate(20, 640)'>
+				<text >Statistics</text>
+				<text id='layerHeightScroll' y='20' >Layer Height: 0.4 mm</text>
+				<text id='numberOfLayersScroll' y='40' >Number of Layers: 120</text>
+				<text id='volumeScroll' y='60' >Volume: 0.0 cm3</text>
+			</g>
+		</g>
+		<text id='isoViewButton' fill='darkslateblue' font-size='18px' font-weight='normal' onclick='viewIso()' text-anchor='middle' visibility='visible' x='80' y='30' >[Iso View]</text>
+		<text id='isoViewLabel' fill='darkslateblue' font-size='24px' font-weight='bold' text-anchor='middle' visibility='hidden' x='76' y='30' >Iso View</text>
+		<text id='layerViewButton' fill='darkslateblue' font-size='18px' font-weight='normal' onclick='viewLayer()' text-anchor='middle' visibility='visible' x='240' y='30' >[Layer View]</text>
+		<text id='layerViewLabel' fill='darkslateblue' font-size='24px' font-weight='bold' text-anchor='middle' visibility='hidden' x='236' y='30' >Layer View</text>
+		<text id='scrollViewButton' fill='darkslateblue' font-size='18px' font-weight='normal' onclick='viewScroll()' text-anchor='middle' visibility='hidden' x='400' y='30' >[Scroll View]</text>
+		<text id='scrollViewLabel' fill='darkslateblue' font-size='24px' font-weight='bold' text-anchor='middle' visibility='visible' x='396' y='30' >Scroll View</text>
+	</g>
+</svg>
