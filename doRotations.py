@@ -35,34 +35,16 @@ def main(argv):
     doRotation(xVal, yVal, zVal, fname)
 
 def getRanges(n):
-  # sphere point picking comes from mathworld.wolfram.com
-  ret = { 'x': [], 'y': [], 'z': []}
-  for i in range(0, n):
-    x_1 = random.random()*2 - 1;
-    x_2 = random.random()*2 - 1;
-
-    if x_1*x_1 + x_2*x_2 >= 1:
-      continue
-
-    ex = x_1
-    why = x_2
-    zee = 0
-
-    ret['x'].append(ex)
-    ret['y'].append(why)
-    ret['z'].append(zee)
-
-  ret['x'].extend([-1,-.5,0,.5,1]*5)
-  ret['y'].extend([-1]*5+[-.5]*5+[0]*5+[.5]*5+[1]*5)
-  ret['z'].extend([0]*25)
+  zee = 0;
+  for ex in range(-180, 180, sqrt(n)):
+    for why in range(-180, 180, sqrt(n)):
+      ret['x'].append(ex)
+      ret['y'].append(why)
+      ret['z'].append(zee)
 
   return ret
 
 def doRotation(x, y, z, fname):
-  x = x*180
-  y = y*180
-  z = z*180
-
   scadFile = createOpenSCADFile(x, y, z, fname)
   success = runOpenSCADFile(x, y, z, fname, scadFile)
   cleanUpScadFile(scadFile)
