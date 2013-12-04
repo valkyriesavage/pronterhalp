@@ -282,7 +282,7 @@ STLModel.prototype.addToBody = function() {
 
 	renderer = new THREE.WebGLRenderer(); //new THREE.CanvasRenderer();
 	// renderer.setSize( window.innerWidth, window.innerHeight );
-	renderer.setSize( window.innerWidth/2, window.innerHeight/2 );
+	renderer.setSize( window.innerWidth/2, window.innerHeight );
 
 	document.getElementById("model").appendChild( renderer.domElement );
 

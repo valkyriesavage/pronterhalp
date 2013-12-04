@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<title>Pronterhalp</title>
+		<title>Support Support</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<style>
@@ -18,11 +18,13 @@
 		<script src="js/OrbitControls.js"></script>
             <script src="js/STLModel.js"></script>
 	</head>
-	<body>
-            <div id="stats" style="text-align: center; font-size: large">Statistics</div>
-		<div id="heatmaps"></div>
-		<div id="histograms"></div>
-            <div id="model"></div>
+        <body>
+          <div id="header" style="text-align: center; font-size: 36px">Support Support</div>
+          <div id="stats" style="text-align: center; font-size: large">Statistics</div>
+	    <div id="heatmaps" style="width:25%; float:left"></div>
+            <div id="histograms" style="width:25%; float:left"></div>
+            <div id="model" style="width:50%; float:left"></div>
+          </div>
 
 		<script>
             /**
@@ -33,10 +35,11 @@
             var m = new STLModel(width, height);
 		
             /*
-		 * Histogram Allocation
-		 */
-		var histograms = new Array(); 
-		// Histogram #1
+	     * Histogram Allocation
+	     */
+	    var histograms = new Array(); 
+            
+            // Histogram #1
             width = window.innerWidth/4;
             height = window.innerHeight/4;
             var h1 = new NewHistogram(width, height, "data/barchart.tsv");
