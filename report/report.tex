@@ -4,8 +4,6 @@
 \clubpenalty=10000 
 \widowpenalty = 10000
 
-\bibliographystyle{plain}
-
 % To make various LaTeX processors do the right thing with page size.
 \def\pprw{8.5in}
 \def\pprh{11in}
@@ -99,13 +97,16 @@ The time it takes for a part to print on FDM-style machines increases monotonica
 Support material from hobbyist-level printers cannot be recycled as yet.  Some support materials, for example PLA which is produced from corn, are biodegradable, however the most popular material--ABS--creates waste that does not degrade easily.  Support material is also not free, and costs a set amount per unit volume used in a print.  Hobbyists are in general sensitive to wasting money and creating waste, so the volume of support material printed is a concern for them.  Irrespective of the orientation of the model, the volume of material used for the model does not change, so this can be disregarded.
 
 \subsection{Support Material Removal}
-Removal of support material is an issue for hobbyist machines.  Because support is fabricated of the same material as models, separating support layers from model layers can be challenging.  The main issues that contribute to support material removal time are surface area of model contacted by support material, angle of incidence of support material on model, connected components of support material, curvature of surface contacted by support material, and accessibility of support material.
+Removal of support material is an issue for hobbyist machines.  Because support is fabricated of the same material as models, separating support layers from model layers can be challenging.  The main issues that contribute to support material removal time are surface area of model contacted by support material, angle of incidence of support material on model, surfaces affected by support material, connected components of support material, curvature of surface contacted by support material, and accessibility of support material.
 
 \subsubsection{Surface Area}
 The surface area of a model contacted by support material is directly proportional to the support removal time.  Larger surface areas in contact with support lead to longer removal times.
 
 \subsubsection{Angle of Incidence}
 The angle at which support contacts model affects support removal time.  Support which has a contact of 90 degrees is significantly easier to remove than support contacting at an oblique angle.
+
+\subsubsection{Affected Faces}
+Because the support material removal process can be rough, model makers may orient a model in order to keep faces with small details support-free to avoid damaging them.
 
 \subsubsection{Connected Components}
 Support material adheres well to itself, and is easiest to pull off as larger chunks.  The more connected components there are created in support material for a model, the longer it will take to remove because leverage from one component can't be applied to another.
@@ -116,8 +117,10 @@ Model surfaces don't always have smooth and slight curves.  When printing a mode
 \subsubsection{Accessibility}
 3D printers have opened up worlds beyond traditional manufacturing processes, and many objects that can be fabricated with a 3D printer cannot be fabricated with any other type of machinery.  Designs can have completely enclosed, freely-moving parts, printed-in-place mechanisms like hinges or chain links, or any of a number of other interesting configurations.  To allow these types of creations to be printed, support material is sometimes very difficult to access from the outside of a model.
 
+We did not have time to focus on all of these metrics, however we have created a visualization tool for 3D designers to explore \emph{time to print, support material volume, surface area, angle of incidence,} and \emph{affected faces}.
+
 \section{Related Work}
-There are numerous tools available for free or a fee which assist users with certain tasks in 3D printing.  These tools are mostly focused on offering flexibility for users to customize their prints, rather than comparing different options.
+There are two main areas of work which we build off for Support Support.  The first is visualization design and sampling over multidimensional spaces.  The second is in actual 3D printing tools.
 
 \subsection{Visualization Design}
 In terms of visualization design, there are multiple prior works in the space of multi-dimensional sampling and optimization.
@@ -128,31 +131,81 @@ Randomly sampling that 3-dimensional space is a spherical point picking problem.
 
 We initially built off this work, however with further literature and practical review we realized that in 3D printing it is not actually a sphere that is optimized over!  A 2-dimensional square will do.  Rotation about the z-axis (yaw) does not affect support material usage, accessibility, or any of our other metrics.
 
-Multi-dimensional sampling and optimizations have been explored in visualization previously, as mentioned.  The foundational work on this was Design Galleries \cite{design-galleries}.
+Multidimensional sampling and optimizations have been explored in visualization previously, as mentioned.  The foundational work on this was Design Galleries \cite{design-galleries}.  Marks, et al., sampled their multidimensional spaces before a user interacted with their system, generating a projection of the sampled functions into a 2D grid with points where their samples came from.  Users could click on sampled points to see the results of rendering a digital scene with those parameters.  We leverage this technique for the design of our visualization, and we extend their work by focusing also on distributions of several numerical measurements unrelated to the visual look of a generated sample.
 
 \subsection{3D Printing}
+There are numerous tools available for free or a fee which assist users with certain tasks in 3D printing.  These tools are mostly focused on offering flexibility for users to customize their prints, rather than comparing different options.
 
-\section{Supporting a Wizzard}
-some story about how a user goes through the process of choosing things in our interface
+The usual stages a user goes through to 3D print a model are orient, slice, and print.  Some typical examples of interfaces that users use for this are Cura \cite{cura} and Willit 3D Print \cite{willit}.  Cura and Willit are frontends which allow the user to freely rotate their model in space, and which can then call slicers.
+
+Slicers are programs which cut the 3D model into "slices", determine where support is necessary (i.e. where model overhang is greater than 45 degrees), and generate toolpaths through which the printer head will move during the printing process.  They are typically separate from the frontend orientation programs.  Two example slicing engines are Cura Engine \cite{cura-engine} and Skeinforge \cite{skeinforge}.
+
+Designers usually use their orientation frontends to interface with their printers.  They send the slicer-generated GCode instructions to the printer for execution.
+
+Some services, e.g. Shapeways \cite{shapeways} and the aforementioned Willit, offer boolean "will it print" answers.  Users can upload a model and are informed whether it will print by their selected process.  Examples of features which could prevent printability are very thin features (i.e. which are too thin to recreate with the printer's filament) or very large objects (i.e. which do not fit in the printer).  We go beyond this binary yes/no to offer more feedback on a printable objects' properties along particular dimensions.
+
+\subsection{Fabrication and Visualization}
+There has been little work in this area of intersection, Jansen, et al., in \cite{jansen-physvis} explored 3D-printed visualizations of bar charts and how their physicality influenced time required and accuracy attained for users to read values, comparing the physical visualizations to digital and AR visualizations.  Our work is focused on generating visualizations about fabrication, rather than visualizations with fabrication.
+
+\begin{figure}
+\centering
+\includegraphics[width=3.25in]{images/wizzard.png}
+\caption{Wizzard.stl, a file downloaded from the 3D printing community site Thingiverse.  Notice that there are several greater than 45 degree overhangs in this model, especially around the draping sleeve.}
+\label{fig:wizzard}
+\end{figure}
+
+\section{Support Supporting a Wizzard}
+A novice printer user surfing a 3D printing community website finds a design that she likes created by another user.  She downloads the STL for this file, Wizzard.STL, to her computer.  The designer who uploaded the design did not include instructions about optimal printing orientation, and our user notices (see Figure \ref{fig-wizzard})that there are some parts of the model where the overhangs are definitely more than 45 degrees.  This wizzard has sleeves that drape down below his hands which are totally unconnected to anything.  She can immediately see that she will have to use support material for this print.
+
+Being a novice printer user, she decides to fire up Support Support to help her find the best way to print the Wizzard.  She runs the data generation script, and some time later comes back to her computer to look at the visualization of the data generated.
+
+\valkyrie{Derrick, please put some story about how this user goes through the process of choosing things in our interface}
 
 \section{Implementation}
-all the details!
+The visualization we implemented is broken down into two parts: data generation and visualization.  Data generation is done offline and ahead of time.  The visualization is visible and available for interaction in-browser.
 
 \subsection{Data Generation}
+To create data for our visualization, we randomly sample the space of possible rotations in X and Y.  As mentioned, rotation in Z does not affect any of the statistics we measure.  We create this set of rotations, and then we programmatically rotate the user's STL file and make a copy of it in each rotation.  This collection of STL files is forwarded to the data generation portion of the pipeline.
+
+Data generation is accomplished by logging aggressively during a slicing program's slicing process.  The data we gather are, as mentioned, time to print, support material volume, surface area, angle of incidence, and affected faces.  We used Cura and Skeinforge, both open-source slicing engines, to generate portions of this data.
+
+The types of data that we collect for this visualization are as follows:
+\begin{itemize}
+\item support material volume
+\item time to print
+\item surface area of support material contact with model
+\item model faces contacted by support material
+\item angle of contact of support material on each face
+\end{itemize}
+
+All of these data are collected through a combination of added calculation in the slicing programs, extensive logging during the slicing process, and post-slicing log processing with python.
+
+\subsection{Rotations}
+
+\subsection{Volume and Time}
+The support material volume and time to print are both calculated using Skeinforge, which is a pure python slicing program that is no longer actively supported.  We selected it for this portion of the data generation because, though it runs slower than new slicing software, the code was much better commented and easy to work with.
+
+Support material volume is calculated by first slicing the model with no support.  This value, the base material use, is stored.  We then slice the model in 
+
+\valkyrie{need to talk about what we did here, and how we generate all the goods}
 
 \subsection{Visualization}
 
 \section{Evaluation}
 suggestions we got from people.
 
-\section{Limitations}
-in the future
+\section{Limitations and Future Work}
+There are several considerations of support material and its removal that we do not currently measure, in particular connected components, curvature, and accessibility.  We believe that these measurements are, while not trivial or necessarily computationally efficient, straightforward to determine given sufficient programming time.  Accessibility of support material could be determined with raycasting algorithms.  Curvature and connected components could be tracked by iterating over neighborhoods of each face and comparing measurements.
+
+Another feature that would be very beneficial in future work is brushing and linking with affected faces.  Ideally, a 3D molder would be able to paint faces that should be kept support-free in a print, and use these constraints to narrow the search space of orientations.  Without a reasonably sophisticated search index, we were unable to create this function in a way that functioned at interactive speeds.
 
 \section{Discussion}
-ask again later
+Tools for sampling multi-dimensional spaces and visualizations in general have been employed to serve mainly digital needs.  As 3D printers become more ubiquitous and digital design takes to the physical realm, we anticipate that more visualizations will focus on helping novices navigate the complex optimization problems associated with the printing process.  Hopefully some of this is only a stopgap solution.  We anticipate that more multi-material printers will become more affordable to hobbyists, and thereby that the support question will be less difficult.  However, material waste is still a salient issue in even commercial 3D printers with dissolvable supports, as dissolved material is not recoverable.  Even with more sophisticated machines, the fused deposition modeling (FDM) process can still give rise to issues with differing resolution in XY and Z, and also can be subject to shearing at layer interfaces when forces are applied.  We believe that orientation tools to help users explore the tradeoffs for different orientations will evolve with printers, and Support Support is just the start.
 
 \section{Conclusion}
-balallaa
+Support Support is a data generation pipeline and visualization designed to save inexperienced designers time in their search to balance material use, printing time, and post-print cleaning time.  We have designed with our own experiences in mind, and with the input of others with 3D printing experience.  There are innumerable features that could be added to a visualization such as this, and additionally it will become more useful as the preprocessing time approaches 0.  A model for creating a better sampling process, i.e. to optimize for one or more user-selected parameters, would obviously make Support Support even more usable in the future.
+
+We are excited to release Support Support into the wild with instructions for users to create their own deployments.  We expect that we will get more feedback on it through this process, and plan to continue developing it in our spare time as it serves many of our own needs.
 
 \section{Acknowledgements}
 This material is based upon work supported by the National Science Foundation under Grant No. DGE 1106400.  The authors would like to thank the kind users of the Ultimaker forums for their assistance with Cura and data generation.
