@@ -150,7 +150,7 @@ There has been little work in this area of intersection, Jansen, et al., in \cit
 \begin{figure}
 \centering
 \includegraphics[width=3.25in]{images/wizzard.png}
-\caption{Wizzard.stl, a file downloaded from the 3D printing community site Thingiverse.  Notice that there are several greater than 45 degree overhangs in this model, especially around the draping sleeve.}
+\caption{Wizzard.stl, a file downloaded from the 3D printing community site Thingiverse.  Notice that there are several greater than 45 degree overhangs in this model, especially around the draping sleeves.}
 \label{fig:wizzard}
 \end{figure}
 
@@ -180,16 +180,35 @@ The types of data that we collect for this visualization are as follows:
 
 All of these data are collected through a combination of added calculation in the slicing programs, extensive logging during the slicing process, and post-slicing log processing with python.
 
-\subsection{Rotations}
+\subsubsection{Rotations}
+Rotations are generated using a python script.  Since we identified that rotation in Z did not affect our metrics, we use random selection over two independent distributions on $(-\pi,\pi]$ to select the X and Y rotation.
 
-\subsection{Volume and Time}
+With the rotations selected, we generate one-time scripts for the programmatic 3D modeling program OpenSCAD.  These scripts are used to call OpenSCAD on the commandline.  This process saves out STL files with the proper rotations of the original.
+
+\subsubsection{Volume and Time}
 The support material volume and time to print are both calculated using Skeinforge, which is a pure python slicing program that is no longer actively supported.  We selected it for this portion of the data generation because, though it runs slower than new slicing software, the code was much better commented and easy to work with.
 
-Support material volume is calculated by first slicing the model with no support.  This value, the base material use, is stored.  We then slice the model in 
+Support material volume is calculated by first slicing the model with no support.  This value, the base material use, is stored.  We then slice the model in all generated orientations and calculate the volume of the total print.  We subtract our stored base material use from the volume of each orientation, giving us the support material use in each orientation.  Note that the volume of material used for the model does not change in different orientations.
 
-\valkyrie{need to talk about what we did here, and how we generate all the goods}
+Time to print is calculated using heuristics about the printer's speed moving in XY and Z.  By parsing the generated machine code for the printer, we can sum the execution time over all commands sent to the printer.  This estimated time can be slightly inaccurate; many 3D printers now have hardware acceleration which allows them to print long lines more quickly per distance than short lines.  We do not account for this in our data gathering.
+
+\subsubsection{Surface Area, Affected Faces, and Angles}
+Our remaining metrics are calculated using Cura, an open-source slicing engine written in C++.  It is more powerful and well-abstracted than Skeinforge, in addition to running faster, so it was ideal for these remaining metrics.
+
+Supported surface area of the model is calculated alongside support.  As the triangles of the STL file are iterated over, we consider only those flagged as needing support.  Using the three vertices (in 3-space) of the triangles, we calculate the area of the triangle ABC as follows:
+
+\begin{enumerate}
+\item Find angle between AB and AC, using $AB \cdot AC = |AB||AC|cos\theta$
+\item Calculate area using $A = \frac{1}{2}|AB||AC|sin\theta$
+\end{enumerate}
+
+We sum over the areas of all supported triangles.  We are also interested in which triangles have support attached to them, so alongside this area calculation, we also log the 3D coordinates of the vertices of all triangles that contact support.
+
+In its usual generation of supports, Cura calculates the angle of the support material's contact with the surface.  It uses this for the purpose of creating accurate machine code where the support material meets the model material's surface.  We simply log these angles as they are calculated and keep a running count of faces found at each orientation; we later take the average of these values.
 
 \subsection{Visualization}
+
+\valkyrie{Derrick, please write this section!}
 
 \section{Evaluation}
 suggestions we got from people.
