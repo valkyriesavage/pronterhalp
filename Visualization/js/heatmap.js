@@ -11,11 +11,11 @@ function HeatMap(width, height, dataJson, orientationCallback, dataField) {
 }
 
 HeatMap.prototype.pixelsToOrientation = function(pixelX, pixelY) {
-	var orientation = new Object();
-	console.log("Convert pixels to orientation");
-	orientation.xRotation = pixelX;
-	orientation.yRotation = pixelY;
-	return orientation;
+  var orientation = new Object();
+  console.log("Convert pixels to orientation");
+  orientation.xRotation = pixelX;
+  orientation.yRotation = pixelY;
+  return orientation;
 }
 
 HeatMap.prototype.addToBody = function() {  
@@ -26,13 +26,6 @@ HeatMap.prototype.addToBody = function() {
   var canvas = d3.select("#heatmaps").append("canvas");
   var pixelsToOrientation = this.pixelsToOrientation;
   var callback = this.callback;
-
-  // d3.json(this.dataFile, function(error, json) {
-  //   if (error) {
-  //       return console.warn(error);
-  //   }
-  // var dx = heatmap[0].length,
-  //     dy = heatmap.length;
 
   // Fix the aspect ratio.
   // var ka = dy / dx, kb = height / width;
@@ -123,7 +116,7 @@ HeatMap.prototype.addToBody = function() {
 
     for (var y = 0, p = -1; y < dy; ++y) {
       for (var x = 0; x < dx; ++x) {
-        var c = d3.rgb(color(heatData[y][x]));
+        var c = interpolatePositionColor(x, y, color, heatData);
         image.data[++p] = c.r;
         image.data[++p] = c.g;
         image.data[++p] = c.b;
@@ -132,6 +125,35 @@ HeatMap.prototype.addToBody = function() {
     }
 
     context.putImageData(image, 0, 0);
+  }
+
+  function interpolatePositionColor(x, y, color, heatData) {
+    // we have x's every 20 degrees
+    // we have y's every 20 degrees
+    var lowerX, upperX, lowerY, upperY;
+
+    lowerX = x - x%20;
+    upperX = lowerX + 20;
+    lowerY = y - y%20;
+    upperY = lowerY + 20;
+
+    if (upperX >= 360) upperX = 0;
+    if (upperY >= 360) upperY = 0;
+
+    var c00, c01, c10, c11;
+    c00 = d3.rgb(color(heatData[lowerX][lowerY]));
+    c01 = d3.rgb(color(heatData[upperX][lowerY]));
+    c10 = d3.rgb(color(heatData[lowerX][upperY]));
+    c11 = d3.rgb(color(heatData[upperX][upperY]));
+    return d3.rgb(interpolateBilinear(c00, c01, c10, c11)(x, y));
+  }
+
+  function interpolateBilinear(c00, c01, c10, c11) {
+    var i = d3.interpolate(c00, c01),
+        j = d3.interpolate(c10, c11);
+    return function(u, v) {
+      return d3.interpolate(i(u), j(u))(v);
+    };
   }
 
   function removeZero(axis) {

@@ -96,10 +96,11 @@ STLModel.prototype.addToBody = function() {
   	var maxY = -1000000;
   	var maxZ = -1000000;
 
+        var supportedTrianglesBuConfiguration;
         // this is harsh.  but we gotta do it
         d3.json("data/wizzardSupported.json", function(error, json) {
           if (error) return console.warn(error);
-          var supportedTrianglesByConfiguration = json;
+          supportedTrianglesByConfiguration = json;
           console.log(supportedTrianglesByConfiguration);
         });
   
@@ -185,7 +186,7 @@ STLModel.prototype.addToBody = function() {
 	                geo.faces.push(face);
 
                         relevantTriangles = [];
-                        supportedTrianglesByConfiguration.foreach(function(cfg) {
+                        /*supportedTrianglesByConfiguration.foreach(function(cfg) {
                           if(cfg.x == mesh.rotation.x && cfg.y == mesh.rotation.y && cfg.z == mesh.rotation.z) {
                             relevantTriangles = cfg.triangles;
                           }
@@ -195,7 +196,7 @@ STLModel.prototype.addToBody = function() {
                         var vertex3 = geo.vertices[vCount*3];
                         relevantTriangles.foreach(function(triangle) {
                         
-                        });
+                        });*/
 
 	                vCount++;
 	                state = 'endloop';
