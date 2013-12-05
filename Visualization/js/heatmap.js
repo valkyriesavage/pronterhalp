@@ -25,14 +25,32 @@ var canvas = d3.select("#heatmaps").append("canvas");
 var pixelsToOrientation = this.pixelsToOrientation;
 var callback = this.callback;
 
-d3.json(this.dataFile, function(error, heatmap) {
-  var dx = heatmap[0].length,
-      dy = heatmap.length;
+d3.json(this.dataFile, function(error, json) {
+  if (error) {
+      return console.warn(error);
+  }
+  // var dx = heatmap[0].length,
+  //     dy = heatmap.length;
 
   // Fix the aspect ratio.
   // var ka = dy / dx, kb = height / width;
   // if (ka < kb) height = width * ka;
   // else width = height / ka;
+  var dx = 361;
+  var dy = 361;
+  var xOffset = 180;
+  var yOffset = 180;
+  var heatData = new Array(dy);
+  for (var r= 0; r < dy; r++) {
+    heatData[r] = new Array(dx);
+  }
+  var x, y;
+  console.log("JSON LENGTH: " + json.length);
+  for (i = 0; i < json.length; i++) {
+    x = Math.round(parseFloat(json[i].x));
+    y = Math.round(parseFloat(json[i].y));
+    heatData[x+xOffset][y+yOffset] = parseFloat(json[i].printTime);
+  }
 
   var x = d3.scale.linear()
       .domain([0, dx])
@@ -66,10 +84,10 @@ d3.json(this.dataFile, function(error, heatmap) {
     	// console.log(this);
     	console.log("Absolute Position of Canvas Element: " + this.offsetLeft + ", " + this.offsetTop)
     	console.log("Absolute Click Position: " + d3.event.clientX + ", " + d3.event.clientY );
-    	var dX = (d3.event.clientX - this.offsetLeft);
-    	var dY = (d3.event.clientY - this.offsetTop);
-    	var orientation = pixelsToOrientation(dX, dY);
-    	console.log("Relative Click Position to Canvas: " + dX + "," + dY);
+    	var deltX = (d3.event.clientX - this.offsetLeft);
+    	var deltY = (d3.event.clientY - this.offsetTop);
+    	var orientation = pixelsToOrientation(deltX, deltY);
+    	console.log("Relative Click Position to Canvas: " + deltX + "," + deltY);
     	callback(orientation.xRotation, orientation.yRotation);
   	  });
 
@@ -96,7 +114,7 @@ d3.json(this.dataFile, function(error, heatmap) {
 
     for (var y = 0, p = -1; y < dy; ++y) {
       for (var x = 0; x < dx; ++x) {
-        var c = d3.rgb(color(heatmap[y][x]));
+        var c = d3.rgb(color(heatData[y][x]));
         image.data[++p] = c.r;
         image.data[++p] = c.g;
         image.data[++p] = c.b;
