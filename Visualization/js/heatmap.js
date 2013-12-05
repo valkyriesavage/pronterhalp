@@ -1,11 +1,13 @@
 /**
 HeatMap Class
 */
-function HeatMap(width, height, dataFile, orientationCallback) {
+function HeatMap(width, height, dataJson, orientationCallback, dataField) {
   this.width = width;
   this.height = height;
-  this.dataFile = dataFile;
+  // this.dataFile = dataFile;
+  this.json = dataJson;
   this.callback = orientationCallback; // call back to call when updating orientation
+  this.dataField = dataField;
 }
 
 HeatMap.prototype.pixelsToOrientation = function(pixelX, pixelY) {
@@ -17,18 +19,18 @@ HeatMap.prototype.pixelsToOrientation = function(pixelX, pixelY) {
 }
 
 HeatMap.prototype.addToBody = function() {  
-var width = this.width,
-    height = this.height;
+  var width = this.width,
+      height = this.height;
 
-// Add the canvas first
-var canvas = d3.select("#heatmaps").append("canvas");
-var pixelsToOrientation = this.pixelsToOrientation;
-var callback = this.callback;
+  // Add the canvas first
+  var canvas = d3.select("#heatmaps").append("canvas");
+  var pixelsToOrientation = this.pixelsToOrientation;
+  var callback = this.callback;
 
-d3.json(this.dataFile, function(error, json) {
-  if (error) {
-      return console.warn(error);
-  }
+  // d3.json(this.dataFile, function(error, json) {
+  //   if (error) {
+  //       return console.warn(error);
+  //   }
   // var dx = heatmap[0].length,
   //     dy = heatmap.length;
 
@@ -36,6 +38,7 @@ d3.json(this.dataFile, function(error, json) {
   // var ka = dy / dx, kb = height / width;
   // if (ka < kb) height = width * ka;
   // else width = height / ka;
+  var json = this.json;
   var dx = 361;
   var dy = 361;
   var xOffset = 180;
@@ -49,7 +52,13 @@ d3.json(this.dataFile, function(error, json) {
   for (i = 0; i < json.length; i++) {
     x = Math.round(parseFloat(json[i].x));
     y = Math.round(parseFloat(json[i].y));
-    heatData[x+xOffset][y+yOffset] = parseFloat(json[i].printTime);
+    if (this.dataField === "printTime") {
+      heatData[x+xOffset][y+yOffset] = parseFloat(json[i].printTime);
+    } else if (this.dataField === "material") {
+      heatData[x+xOffset][y+yOffset] = parseFloat(json[i].material);
+    } else if (this.dataField === "cleanTime") {
+      heatData[x+xOffset][y+yOffset] = parseFloat(json[i].cleanTime);
+    }
   }
 
   var x = d3.scale.linear()
@@ -128,5 +137,5 @@ d3.json(this.dataFile, function(error, json) {
   function removeZero(axis) {
     axis.selectAll("g").filter(function(d) { return !d; }).remove();
   }
-});
+// });
 }
