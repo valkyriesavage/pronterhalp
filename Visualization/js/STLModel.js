@@ -7,7 +7,8 @@ function STLModel(width, height) {
 }
 
 STLModel.prototype.addToBody = function() {
-	var camera, scene, renderer, geometry, material, mesh, light1, stats, controls;
+
+  var camera, scene, renderer, geometry, material, mesh, light1, stats, controls;
 
 	function trim (str) {
 	str = str.replace(/^\s+/, '');
@@ -95,6 +96,13 @@ STLModel.prototype.addToBody = function() {
   	var maxY = -1000000;
   	var maxZ = -1000000;
 
+        // this is harsh.  but we gotta do it
+        d3.json("data/wizzardSupported.json", function(error, json) {
+          if (error) return console.warn(error);
+          var supportedTrianglesByConfiguration = json;
+          console.log(supportedTrianglesByConfiguration);
+        });
+  
 	var parseStl = function(stl) {
 	var state = '';
 	var lines = stl.split('\n');
@@ -173,8 +181,22 @@ STLModel.prototype.addToBody = function() {
 	            	// console.log("ADDING FACE");
 	            	var face = new THREE.Face3( vCount*3, vCount*3+1, vCount*3+2, new THREE.Vector3(normal[0], normal[1], normal[2]) );
 	            	// Valkyrie
-	            	face.color.setRGB( 0, 0, 0.8 * Math.random() + 0.2 );    
+	            	face.color.setRGB( 0, 0, 0.8 * Math.random() + 0.2 );
 	                geo.faces.push(face);
+
+                        relevantTriangles = [];
+                        supportedTrianglesByConfiguration.foreach(function(cfg) {
+                          if(cfg.x == mesh.rotation.x && cfg.y == mesh.rotation.y && cfg.z == mesh.rotation.z) {
+                            relevantTriangles = cfg.triangles;
+                          }
+                        });
+                        var vertex1 = geo.vertices[vCount*3];
+                        var vertex2 = geo.vertices[vCount*3];
+                        var vertex3 = geo.vertices[vCount*3];
+                        relevantTriangles.foreach(function(triangle) {
+                        
+                        });
+
 	                vCount++;
 	                state = 'endloop';
 	            } else {

@@ -34,7 +34,7 @@ def main(argv):
   allStats = []
   allTriangles = []
   for name in getFilenames(fname):
-    material, printTime, cleanTime = calculateStatistics(name, baseStats)
+    material, printTime, surfaceArea, angles = calculateStatistics(name, baseStats)
     x, y, z = getRotation(name, fname)
     allStats.append({
       'x': x,
@@ -42,7 +42,8 @@ def main(argv):
       'z': z,
       'material': material,
       'printTime': printTime,
-      'cleanTime': cleanTime})
+      'surfaceArea': surfaceArea,
+      'angles': angles})
     allTriangles.append({
       'x': x,
       'y': y,
@@ -86,10 +87,10 @@ def getRotation(fname, basefname):
 def calculateStatistics(fname, baseStats):
   material = 0
   printTime = 0
-  cleanTime = 0
+  surfaceArea = 0
+  angles = []
 
-  supportArea = 0
-  avgAngle = 0
+  angleLine = re.compile(r"\*&\* \t(?P<degrees>[0-9\.]*) deg -- \t(?P<count>\d+)")
 
   with open(fname.replace("_support", "_raft")) as f:
     for line in f:
@@ -108,18 +109,10 @@ def calculateStatistics(fname, baseStats):
         line = line.split("*&* ")[1]
         if "units^2" in line:
           supportArea = float(line.split("units^2")[0])
-        if "max angle" in line:
-          maxAngle = float(line.split("max angle")[0])
-        if "min angle" in line:
-          minAngle = float(line.split("min angle")[0])
-        if "average angle" in line:
-          avgAngle = float(line.split("average angle")[0])
+      if angleLine.match(line):
+        angles.append((angleLine.group('degrees'), angleLine.group('count')))
 
-  if avgAngle is 0:
-    avgAngle = .000001
-  cleanTime = supportArea*(1/avgAngle)
-
-  return (material, printTime, cleanTime)
+  return (material, printTime, surfaceArea, angles)
 
 def getTriangles(fname):
   triangles = []

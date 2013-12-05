@@ -27,7 +27,8 @@ def main(argv):
 
   generateBaseGCode(fname)
   for name in getFilenames(fname):
-    callSkeinforge(name)
+    if not os.path.exists(name.replace('.stl', '_raft.gcode')):
+      callSkeinforge(name)
 
   cleanDirectory(fname)
 

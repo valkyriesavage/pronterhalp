@@ -11,7 +11,7 @@ def main(argv):
     sys.exit(2)
 
   fname = ""
-  n = 100
+  n = 400
 
   for opt, arg in opts:
     if opt in ("-f", "--filename="):
@@ -61,6 +61,8 @@ def createOpenSCADFile(x, y, z, fname):
   shutil.copy(fname, os.path.join(filesDir, fname))
   scadFile = "x{0}y{1}z{2}.scad".format(x, y, z)
   scadFile = os.path.join(filesDir, scadFile)
+  if os.path.exists(scadFile):
+    return scadFile
   fileText = 'rotate([{0},{1},{2}]) import("{3}");'.format(x, y, z, fname)
   f = open(scadFile, 'w+')
   f.write(fileText)
@@ -71,6 +73,8 @@ def runOpenSCADFile(x, y, z, fname, scadFile):
   openSCAD = "/Applications/OpenSCAD.app/Contents/MacOS/OpenSCAD"
   outFile = "x{0}y{1}z{2}-{3}".format(x,y,z,fname)
   outFile = os.path.join(os.path.dirname(scadFile), outFile)
+  if os.path.exists(outFile):
+    return
   err = subprocess.call([openSCAD, "-o", outFile, scadFile])
   return
 
