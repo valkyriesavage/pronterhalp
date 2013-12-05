@@ -13,7 +13,7 @@
 		<script src="js/three.js"></script>
 		<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
 		<script src="js/detector.js"></script>
-		<script src="js/NewHistogram.js"></script>
+		<script src="js/HistogramOne.js"></script>
 		<script src="js/heatmap.js"></script>
 		<script src="js/OrbitControls.js"></script>
             <script src="js/STLModel.js"></script>
@@ -27,31 +27,34 @@
           </div>
 
 		<script>
-            /**
-             * STLModel Allocation
-             */
-            var width = window.innerWidth/2;
-            var height = window.innerHeight/2; 
-            var m = new STLModel(width, height);
+            var xRotation = 0, yRotation = 0;
+            d3.json("data/output.txt", function(error, json) {
+                  if (error) {
+                        return console.warn(error);
+                  }
+                  handleData(json);
+            });
+
+            function handleData(dataJson) {
 		
             /*
-	     * Histogram Allocation
-	     */
-	    var histograms = new Array(); 
+	       * Histogram Allocation
+	       */
+	      var histograms = new Array(); 
             
             // Histogram #1
             width = window.innerWidth/4;
             height = window.innerHeight/4;
-            var h1 = new NewHistogram(width, height, "data/barchart.tsv");
+            var h1 = new HistogramOne(width, height, dataJson, "printTime");
             histograms[0] = h1;
 
             // Histogram #2
-            var h2 = new NewHistogram(width, height, "data/barchart.tsv");
+            var h2 = new HistogramOne(width, height, dataJson, "material");
             histograms[1] = h2;
 
 
             // Histogram #3
-            var h3 = new NewHistogram(width, height, "data/barchart.tsv");
+            var h3 = new HistogramOne(width, height, dataJson, "material");
             histograms[2] = h3;
 
             /*
@@ -60,7 +63,6 @@
              * 2) Goes through all the heatmaps and marks the associated point
              * 3) Rotates the STL
              */
-            var xRotation = 0, yRotation = 0;
             $("#stats").text("xRotation: " + xRotation + " yRotation:" + yRotation);
 		function updateOrientation(orientX, orientY) {
                   xRotation = orientX;
@@ -72,7 +74,7 @@
                   var h;
                   for (var i = 0; i < histograms.length; i++) {
                         h = histograms[i];
-                        h.highlightBar(Math.random());
+                        h.highlightBar(150*Math.random());
                   }
 
                   // rotate the STL
@@ -87,15 +89,15 @@
             // HeatMap #1
             width = window.innerWidth/4;
             height = window.innerHeight/4;
-            var hm1 = new HeatMap(width, height, "data/output.txt", updateOrientation);
+            var hm1 = new HeatMap(width, height, dataJson, updateOrientation, "printTime");
             heatmaps[0] = hm1;
 
             // HeatMap #2
-            var hm2 = new HeatMap(width, height, "data/output.txt", updateOrientation);
+            var hm2 = new HeatMap(width, height, dataJson, updateOrientation, "material");
             heatmaps[1] = hm2;
 
             // HeatMap #3
-            var hm3 = new HeatMap(width, height, "data/output.txt", updateOrientation);
+            var hm3 = new HeatMap(width, height, dataJson, updateOrientation, "material");
             heatmaps[2] = hm3;
 
             /*
@@ -111,13 +113,17 @@
             h1.addToBody();
             h2.addToBody();
             h3.addToBody();
-
+            }
+            /**
+             * STLModel Allocation
+             */
+            var width = window.innerWidth/2;
+            var height = window.innerHeight/2; 
+            var m = new STLModel(width, height);
             /**
              * Add STLModel to Body
              */
             m.addToBody(); 
-
 		</script>
-		<!--<script src="js/3DModel.js"></script>-->
 	</body>
 </html>
