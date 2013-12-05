@@ -3,6 +3,7 @@ import os
 import shutil
 import subprocess
 import json
+import re
 
 MATERIAL = 0
 PRINTTIME = 1
@@ -31,6 +32,7 @@ def main(argv):
   baseStats = calculateBaseStatistics(fname)
   print baseStats
   allStats = []
+  allTriangles = []
   for name in getFilenames(fname):
     material, printTime, cleanTime = calculateStatistics(name, baseStats)
     x, y, z = getRotation(name, fname)
@@ -41,7 +43,17 @@ def main(argv):
       'material': material,
       'printTime': printTime,
       'cleanTime': cleanTime})
-  print json.dumps(allStats);
+    allTriangles.append({
+      'x': x,
+      'y': y,
+      'z': z,
+      'triangles': getTriangles(name)})
+  f = open('allStats.json', 'w+')
+  f.write(json.dumps(allStats))
+  f.close()
+  f = open('triangleData.json', 'w+')
+  f.write(json.dumps(allTriangles))
+  f.close
 
 def filesDir(fname):
   return fname.split('.')[0] + "-files"
@@ -108,6 +120,26 @@ def calculateStatistics(fname, baseStats):
   cleanTime = supportArea*(1/avgAngle)
 
   return (material, printTime, cleanTime)
+
+def getTriangles(fname):
+  triangles = []
+  triangleList = re.compile(r'\((?P<v1x>\d*),(?P<v1y>\d*),(?P<v1z>\d*)\)\((?P<v2x>\d*),(?P<v2y>\d*),(?P<v2z>\d*)\)\((?P<v3x>\d*),(?P<v3y>\d*),(?P<v3z>\d*)\)')
+  with open(fname) as f:
+    for line in f:
+      if line.startswith("*&*\t("):
+        # here we go!
+        m = triangleList.search(line)
+        v1 = {'x': m.group('v1x'),
+              'y': m.group('v1y'),
+              'z': m.group('v1z')};
+        v2 = {'x': m.group('v2x'),
+              'y': m.group('v2y'),
+              'z': m.group('v2z')};
+        v3 = {'x': m.group('v3x'),
+              'y': m.group('v3y'),
+              'z': m.group('v3z')};
+        triangles.append([v1, v2, v3]);
+  return triangles
 
 def usage():
   print """
