@@ -90,7 +90,7 @@ def calculateStatistics(fname, baseStats):
   surfaceArea = 0
   angles = []
 
-  angleLine = re.compile(r"\*&\* \t(?P<degrees>[0-9\.]*) deg -- \t(?P<count>\d+)")
+  angleLine = re.compile(r"\t(?P<degrees>[0-9\.]*) deg -- \t(?P<count>\d+)")
 
   with open(fname.replace("_support", "_raft")) as f:
     for line in f:
@@ -108,9 +108,10 @@ def calculateStatistics(fname, baseStats):
       if line.startswith("*&* "):
         line = line.split("*&* ")[1]
         if "units^2" in line:
-          supportArea = float(line.split("units^2")[0])
-      if angleLine.match(line):
-        angles.append((angleLine.group('degrees'), angleLine.group('count')))
+          surfaceArea = float(line.split("units^2")[0])
+        m = angleLine.match(line)
+        if m:
+          angles.append((m.group('degrees'), m.group('count')))
 
   return (material, printTime, surfaceArea, angles)
 

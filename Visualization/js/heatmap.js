@@ -64,8 +64,8 @@ HeatMap.prototype.addToBody = function() {
       .range([height, 0]);
 
   var color = d3.scale.linear()
-      .domain([95, 115, 135, 155, 175, 195])
-      .range(["#0a0", "#6c0", "#ee0", "#eb4", "#eb9", "#fff"]);
+      .domain([0, 220])
+      .range(['#0f0', '#f00']);
 
   var xAxis = d3.svg.axis()
       .scale(x)
