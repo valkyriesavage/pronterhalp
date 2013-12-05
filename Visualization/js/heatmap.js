@@ -32,10 +32,11 @@ HeatMap.prototype.addToBody = function() {
   // if (ka < kb) height = width * ka;
   // else width = height / ka;
   var json = this.json;
-  var dx = 361;
-  var dy = 361;
+  var dx = 360;
+  var dy = 360;
   var xOffset = 180;
   var yOffset = 180;
+  var degreesPer = 20.0;
   var heatData = new Array(dy);
   for (var r= 0; r < dy; r++) {
     heatData[r] = new Array(dx);
@@ -94,21 +95,6 @@ HeatMap.prototype.addToBody = function() {
   	  });
 
 
-  // var svg = d3.select("body").append("svg")
-  //     .attr("width", width)
-  //     .attr("height", height);
-
-  // svg.append("g")
-  //     .attr("class", "x axis")
-  //     .attr("transform", "translate(0," + height + ")")
-  //     .call(xAxis)
-  //     .call(removeZero);
-
-  // svg.append("g")
-  //     .attr("class", "y axis")
-  //     .call(yAxis)
-  //     .call(removeZero);
-
   // Compute the pixel colors; scaled by CSS.
   function drawImage(canvas) {
     var context = canvas.node().getContext("2d"),
@@ -116,7 +102,11 @@ HeatMap.prototype.addToBody = function() {
 
     for (var y = 0, p = -1; y < dy; ++y) {
       for (var x = 0; x < dx; ++x) {
-        var c = interpolatePositionColor(x, y, color, heatData);
+        var c;
+        if (heatData[x][y])
+          c = d3.rgb(color(heatData[x][y]));
+        else
+          c = interpolatePositionColor(x, y);
         image.data[++p] = c.r;
         image.data[++p] = c.g;
         image.data[++p] = c.b;
@@ -127,15 +117,15 @@ HeatMap.prototype.addToBody = function() {
     context.putImageData(image, 0, 0);
   }
 
-  function interpolatePositionColor(x, y, color, heatData) {
-    // we have x's every 20 degrees
-    // we have y's every 20 degrees
+  function interpolatePositionColor(x, y) {
+    // we have x's every degreesPer degrees
+    // we have y's every degreesPer degrees
     var lowerX, upperX, lowerY, upperY;
 
-    lowerX = x - x%20;
-    upperX = lowerX + 20;
-    lowerY = y - y%20;
-    upperY = lowerY + 20;
+    lowerX = x - x%degreesPer;
+    upperX = lowerX + degreesPer;
+    lowerY = y - y%degreesPer;
+    upperY = lowerY + degreesPer;
 
     if (upperX >= 360) upperX = 0;
     if (upperY >= 360) upperY = 0;
@@ -152,6 +142,8 @@ HeatMap.prototype.addToBody = function() {
     var i = d3.interpolate(c00, c01),
         j = d3.interpolate(c10, c11);
     return function(u, v) {
+      u = u%degreesPer/degreesPer;
+      v = v%degreesPer/degreesPer;
       return d3.interpolate(i(u), j(u))(v);
     };
   }

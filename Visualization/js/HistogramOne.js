@@ -47,7 +47,6 @@ HistogramOne.prototype.addToBody = function() {
   var data = d3.layout.histogram()
       .bins(x.ticks(this.numBuckets))
       (values);
-  console.log(data);
 
   var y = d3.scale.linear()
       .domain([0, d3.max(data, function(d) { return d.y; })])
@@ -108,7 +107,6 @@ HistogramOne.prototype.highlightBar = function(v) {
   } 
   // clear the previous highlights
   this.rects.style("fill", "steelblue");
-  console.log("V: " + v + " minVal:" + this.minVal + " numBuckets:" + this.numBuckets + " Step:" + step + " Left: " + left + " Right: " + right);
   // highlight the bar
-  this.rects.filter(function(d) { console.log("d.x:" + d.x); return left <= d.x && d.x < right;}).style("fill", "green");
+  this.rects.filter(function(d) { return left <= d.x && d.x < right;}).style("fill", "green");
 }
