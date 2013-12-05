@@ -35,9 +35,13 @@ def main(argv):
     doRotation(xVal, yVal, zVal, fname)
 
 def getRanges(n):
+  ret = {
+      'x': [],
+      'y': [],
+      'z': []}
   zee = 0;
-  for ex in range(-180, 180, sqrt(n)):
-    for why in range(-180, 180, sqrt(n)):
+  for ex in range(-180, 180, int(math.sqrt(n))):
+    for why in range(-180, 180, int(math.sqrt(n))):
       ret['x'].append(ex)
       ret['y'].append(why)
       ret['z'].append(zee)
