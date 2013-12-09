@@ -156,11 +156,20 @@ There has been little work in this area of intersection, Jansen, et al., in \cit
 \end{figure}
 
 \section{Support Supporting a Wizzard}
-A novice printer user surfing a 3D printing community website finds a design that she likes created by another user.  She downloads the STL for this file, Wizzard.STL, to her computer.  The designer who uploaded the design did not include instructions about optimal printing orientation, and our user notices (see Figure \ref{fig-wizzard})that there are some parts of the model where the overhangs are definitely more than 45 degrees.  This wizzard has sleeves that drape down below his hands which are totally unconnected to anything.  She can immediately see that she will have to use support material for this print.
+A novice printer user surfing a 3D printing community website finds a design that she likes created by another user.  She downloads the STL for this file, Wizzard.STL, to her computer.  The designer who uploaded the design did not include instructions about optimal printing orientation, and our user notices (see Figure \ref{fig:wizzard})that there are some parts of the model where the overhangs are definitely more than 45 degrees.  This wizzard has sleeves that drape down below his hands which are totally unconnected to anything.  She can immediately see that she will have to use support material for this print.
 
 Being a novice printer user, she decides to fire up Support Support to help her find the best way to print the Wizzard.  She runs the data generation script, and some time later comes back to her computer to look at the visualization of the data generated.
 
 \valkyrie{Derrick, please put some story about how this user goes through the process of choosing things in our interface}
+Through looking at the this visualization she can easily view three main aspects of fabrication: support material volume, print time, and surface area of support material contact. For each facet there is a heatmap and a histogram associated, where the x and y axis of the heatmap represent the angle rotation along the x and y axises respectively.
+
+She can click on different portions of one of the heatmaps (for example, on the lightest portion the material use heatmap), and doing so will highlight the bar in the histogram which corresponds to that material use value. For this example, the bar would be farthest to the left, since it would correspond to the least material use. Clicking the heatmap also reorients the wizzard icon (to the referenced new orientation. 
+
+For that,  
+
+support material volume, print time, and surface area of support material contact. angle of indicies, and affect faces.
+
+Support Support allows her to examine 3 important facets of abricating her 3D printing model: 
 
 \begin{figure}
         \centering
@@ -227,8 +236,18 @@ We sum over the areas of all supported triangles.  We are also interested in whi
 In its usual generation of supports, Cura calculates the angle of the support material's contact with the surface.  It uses this for the purpose of creating accurate machine code where the support material meets the model material's surface.  We simply log these angles as they are calculated and keep a running count of faces found at each orientation; we later take the average of these values.
 
 \subsection{Visualization}
-
 \valkyrie{Derrick, please write this section!}
+
+The Support Support visualization is built using three.js \footnote{http://threejs.org} and d3.js \footnote{http://d3js.org}.
+
+\subsubsection{STL Model}
+The STL models are rendered using three.js which is a wrapper on top of webgl. Its takes the ascii STL file and parses it, generating 
+
+\subsubsection{Heatmaps and Histograms}
+time to print, support material volume, difficulty or time to remove support material, and faces covered in support material.
+For each of three facets, we each have a histograms
+interpolation features.
+
 
 \section{Evaluation}
 suggestions we got from people.

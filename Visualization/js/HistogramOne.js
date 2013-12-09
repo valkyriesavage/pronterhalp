@@ -9,20 +9,31 @@ function HistogramOne(width, height, dataJson, dataField) {
   this.numBuckets = 10;
   this.json = dataJson;
   this.dataField = dataField;
+  var dx = 360/20;
+  var dy = 360/20;
+  this.matrix = new Array(dy);
+  for (var r= 0; r < dx; r++) {
+    this.matrix[r] = new Array(dy);
+  }
 }
 
 HistogramOne.prototype.addToBody = function() {  
   var json = this.json;
   var values = new Array(json.length);
   var x, y;
+  var xOffset = 180;
+  var yOffset = 180;
   for (i = 0; i < json.length; i++) {
+    x = parseFloat(json[i].x);
+    y = parseFloat(json[i].y);
     if (this.dataField === "printTime") {
       values[i] = parseFloat(json[i].printTime);
     } else if (this.dataField === "material") {
       values[i] = parseFloat(json[i].material);
-    } else if (this.dataField === "cleanTime") {
-      values[i] = parseFloat(json[i].cleanTime);
+    } else if (this.dataField === "surfaceArea") {
+      values[i] = parseFloat(json[i].surfaceArea)/1000000000;
     }
+    this.matrix[(x + xOffset)/20][(y + yOffset)/20] = values[i];
     if (values[i] > this.maxVal) {
       this.maxVal = values[i];
     }
@@ -55,8 +66,12 @@ HistogramOne.prototype.addToBody = function() {
   var xAxis = d3.svg.axis()
       .scale(x)
       .orient("bottom");
+  // TODO: DERRICK
 
-  var svg = d3.select("#histograms").append("svg")
+  var histo = d3.select("#histograms").append("div").attr("id", "h-"+this.dataField);
+  histo.append("span").attr("id", "h-"+this.dataField+"-text").text(this.dataField);
+  var svg = histo
+      .append("svg")
       .attr("class", "histogram")
       .attr("width", width + margin.left + margin.right)
       .attr("height", height + margin.top + margin.bottom)
@@ -92,15 +107,17 @@ HistogramOne.prototype.addToBody = function() {
  Given a value highlights the associated bar
  Only should be called after addToBody has been called
  */
-HistogramOne.prototype.highlightBar = function(v) {
-  var step = (this.maxVal - this.minVal) / this.numBuckets;
+HistogramOne.prototype.highlightBar = function(x, y) {
+  var v = this.matrix[x/20][y/20];
+  var buckets = this.rects[0].length;
+  var step = (this.maxVal - this.minVal) / buckets;
   var left = 0;
   var right = 0;
   var curV;
-  for (var i = 0; i< this.numBuckets; i++) {
+  for (var i = 0; i< buckets; i++) {
     curV = this.minVal + step*(i+1);
     if (curV > v) {
-      right = (this.minVal + step*(i+1));
+      right = curV;
       left = right - step;
       break;
     }
@@ -108,5 +125,7 @@ HistogramOne.prototype.highlightBar = function(v) {
   // clear the previous highlights
   this.rects.style("fill", "steelblue");
   // highlight the bar
-  this.rects.filter(function(d) { return left <= d.x && d.x < right;}).style("fill", "green");
+  console.log("Left: " + left + " Right: " + right);
+  this.rects.filter(function(d) { return d.x <= v && v < d.x + d.dx}).style("fill", "green");
+  $("#h-"+this.dataField+"-text").text(this.dataField + ": " + v);
 }

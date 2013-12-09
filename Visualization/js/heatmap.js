@@ -10,11 +10,14 @@ function HeatMap(width, height, dataJson, orientationCallback, dataField) {
   this.dataField = dataField;
 }
 
-HeatMap.prototype.pixelsToOrientation = function(pixelX, pixelY) {
+HeatMap.prototype.pixelsToOrientation = function(pixelX, pixelY, width, height) {
   var orientation = new Object();
   console.log("Convert pixels to orientation");
-  orientation.xRotation = pixelX;
-  orientation.yRotation = pixelY;
+  orientation.xRotation = (pixelX/ width) * 360;
+  orientation.yRotation = (pixelY/ height) * 360;
+  // SNAP IT!
+  orientation.xRotation = Math.floor(orientation.xRotation/ 20) * 20;
+  orientation.yRotation = Math.floor(orientation.yRotation/ 20) * 20;
   return orientation;
 }
 
@@ -26,6 +29,7 @@ HeatMap.prototype.addToBody = function() {
   var canvas = d3.select("#heatmaps").append("canvas");
   var pixelsToOrientation = this.pixelsToOrientation;
   var callback = this.callback;
+  var dataField = this.dataField;
 
   // Fix the aspect ratio.
   // var ka = dy / dx, kb = height / width;
@@ -42,6 +46,7 @@ HeatMap.prototype.addToBody = function() {
     heatData[r] = new Array(dx);
   }
   var x, y;
+  var minVal = 10000, maxVal = -10000;
   console.log("JSON LENGTH: " + json.length);
   for (i = 0; i < json.length; i++) {
     x = Math.round(parseFloat(json[i].x));
@@ -50,8 +55,14 @@ HeatMap.prototype.addToBody = function() {
       heatData[x+xOffset][y+yOffset] = parseFloat(json[i].printTime);
     } else if (this.dataField === "material") {
       heatData[x+xOffset][y+yOffset] = parseFloat(json[i].material);
-    } else if (this.dataField === "cleanTime") {
-      heatData[x+xOffset][y+yOffset] = parseFloat(json[i].cleanTime);
+    } else if (this.dataField === "surfaceArea") {
+      heatData[x+xOffset][y+yOffset] = parseFloat(json[i].surfaceArea)/1000000000;
+    }
+    if (heatData[x+xOffset][y+yOffset] > maxVal) {
+      maxVal = heatData[x+xOffset][y+yOffset];
+    }
+    if (heatData[x+xOffset][y+yOffset] < minVal) {
+      minVal = heatData[x+xOffset][y+yOffset];
     }
   }
 
@@ -62,9 +73,9 @@ HeatMap.prototype.addToBody = function() {
   var y = d3.scale.linear()
       .domain([0, dy])
       .range([height, 0]);
-
+  
   var color = d3.scale.linear()
-      .domain([0, 220])
+      .domain([minVal, maxVal])
       .range(['#0f0', '#f00']);
 
   var xAxis = d3.svg.axis()
@@ -89,9 +100,9 @@ HeatMap.prototype.addToBody = function() {
     	console.log("Absolute Click Position: " + d3.event.clientX + ", " + d3.event.clientY );
     	var deltX = (d3.event.clientX - this.offsetLeft);
     	var deltY = (d3.event.clientY - this.offsetTop);
-    	var orientation = pixelsToOrientation(deltX, deltY);
+    	var orientation = pixelsToOrientation(deltX, deltY, width, height);
     	console.log("Relative Click Position to Canvas: " + deltX + "," + deltY);
-    	callback(orientation.xRotation, orientation.yRotation);
+    	callback(orientation.xRotation, orientation.yRotation, heatData, dataField);
   	  });
 
 

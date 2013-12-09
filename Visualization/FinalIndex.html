@@ -9,9 +9,10 @@
 		<link rel="stylesheet" type="text/css" href="css/NewHistogram.css">
             <link rel="stylesheet" type="text/css" href="css/3DModel.css">
             <link rel="stylesheet" type="text/css" href="css/heatmap.css">
-            <script src="http://code.jquery.com/jquery-2.0.2.min.js"></script>
+            <link rel="stylesheet" type="text/css" href="css/HistogramOne.css">
+            <script src="js/jquery-2.0.2.min.js"></script>
 		<script src="js/three.js"></script>
-		<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+		<script src="js/d3.v3.min.js" charset="utf-8"></script>
 		<script src="js/detector.js"></script>
 		<script src="js/HistogramOne.js"></script>
 		<script src="js/heatmap.js"></script>
@@ -21,21 +22,23 @@
         <body>
           <div id="header" style="text-align: center; font-size: 36px">Support Support</div>
           <div id="stats" style="text-align: center; font-size: large">Statistics</div>
-	    <div id="heatmaps" style="width:25%; float:left"></div>
-            <div id="histograms" style="width:25%; float:left"></div>
-            <div id="model" style="width:50%; float:left"></div>
-          </div>
-
+	        <div id="heatmaps" style="width:25%; float:left"></div>
+          <div id="histograms" style="width:25%; float:left"></div>
+          <div id="model" style="width:50%; float:left; display:none"></div>
 		<script>
             var xRotation = 0, yRotation = 0;
-            d3.json("data/output.txt", function(error, json) {
-                  if (error) {
+            d3.json("data/surfaceAreaStats.json", function(error, surfaceAreaJson) {
+              d3.json("data/materialStats.json", function(error, materialJson) {
+                d3.json("data/printTimeStats.json", function(error, printTimeJson) {
+                      if (error) {
                         return console.warn(error);
-                  }
-                  handleData(json);
+                      }
+                      handleData(materialJson, printTimeJson, surfaceAreaJson);
+                });
+              });
             });
 
-            function handleData(dataJson) {
+            function handleData(materialJson, printTimeJson, surfaceAreaJson) {
 		
             /*
 	       * Histogram Allocation
@@ -45,16 +48,15 @@
             // Histogram #1
             width = window.innerWidth/4;
             height = window.innerHeight/4;
-            var h1 = new HistogramOne(width, height, dataJson, "printTime");
+            var h1 = new HistogramOne(width, height, printTimeJson, "printTime");
             histograms[0] = h1;
 
             // Histogram #2
-            var h2 = new HistogramOne(width, height, dataJson, "material");
+            var h2 = new HistogramOne(width, height, materialJson, "material");
             histograms[1] = h2;
 
-
             // Histogram #3
-            var h3 = new HistogramOne(width, height, dataJson, "material");
+            var h3 = new HistogramOne(width, height, surfaceAreaJson, "surfaceArea");
             histograms[2] = h3;
 
             /*
@@ -64,19 +66,28 @@
              * 3) Rotates the STL
              */
             $("#stats").text("xRotation: " + xRotation + " yRotation:" + yRotation);
-		function updateOrientation(orientX, orientY) {
+		function updateOrientation(orientX, orientY, matrix, dataField) {
                   xRotation = orientX;
                   yRotation = orientY;
-			console.log("Updating the orientation of the STL with xRotation: " + orientX + " yRotation: " + orientY);
-                  // Update the statistics bar 
-                  $("#stats").text("xRotation: " + xRotation + " yRotation:" + yRotation);
-                  // highlight bars
+                  var hVal;
                   var h;
-                  for (var i = 0; i < histograms.length; i++) {
-                        h = histograms[i];
-                        h.highlightBar(150*Math.random());
+                  if (dataField === "printTime") {
+                    hVal = matrix[xRotation][yRotation];
+                    h = histograms[0];
+                  } else if (dataField === "material") {
+                    hVal = matrix[xRotation][yRotation];
+                    h = histograms[1];
+                  } else if (dataField === "surfaceArea") {
+                    hVal = matrix[xRotation][yRotation];
+                    h = histograms[2];
                   }
-
+                  console.log("Updating the orientation of the STL with xRotation: " + orientX + " yRotation: " + orientY);
+                  // Update the statistics bar 
+                  $("#stats").text("xRotation: " + (xRotation -180)+ " yRotation:" + (yRotation -180));
+                  // highlight bars
+                  for (var i = 0; i < histograms.length; i++) {
+                    histograms[i].highlightBar(xRotation, yRotation);
+                  }
                   // rotate the STL
                   // should already auto rotate by reading the actual
 
@@ -89,15 +100,15 @@
             // HeatMap #1
             width = window.innerWidth/4;
             height = window.innerHeight/4;
-            var hm1 = new HeatMap(width, height, dataJson, updateOrientation, "printTime");
+            var hm1 = new HeatMap(width, height, printTimeJson, updateOrientation, "printTime");
             heatmaps[0] = hm1;
 
             // HeatMap #2
-            var hm2 = new HeatMap(width, height, dataJson, updateOrientation, "material");
+            var hm2 = new HeatMap(width, height, materialJson, updateOrientation, "material");
             heatmaps[1] = hm2;
 
             // HeatMap #3
-            var hm3 = new HeatMap(width, height, dataJson, updateOrientation, "material");
+            var hm3 = new HeatMap(width, height, surfaceAreaJson, updateOrientation, "surfaceArea");
             heatmaps[2] = hm3;
 
             /*
@@ -113,17 +124,24 @@
             h1.addToBody();
             h2.addToBody();
             h3.addToBody();
+
+            /**
+             * Unhide STL Model
+             */ 
+            $("#model").css("display","");
             }
+
             /**
              * STLModel Allocation
              */
             var width = window.innerWidth/2;
             var height = window.innerHeight/2; 
             var m = new STLModel(width, height);
+
             /**
              * Add STLModel to Body
              */
-            m.addToBody(); 
+            m.addToBody();
 		</script>
 	</body>
 </html>
