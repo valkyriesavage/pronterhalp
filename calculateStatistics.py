@@ -32,10 +32,15 @@ def main(argv):
   baseStats = calculateBaseStatistics(fname)
   print baseStats
   allStats = []
-  allTriangles = []
+  materialStats = []
+  printTimeStats = []
+  surfaceAreaStats = []
+  anglesStats = []
+  trianglesStats = []
   for name in getFilenames(fname):
     material, printTime, surfaceArea, angles = calculateStatistics(name, baseStats)
     x, y, z = getRotation(name, fname)
+    triangles = getTriangles(name)
     allStats.append({
       'x': x,
       'y': y,
@@ -43,18 +48,46 @@ def main(argv):
       'material': material,
       'printTime': printTime,
       'surfaceArea': surfaceArea,
-      'angles': angles})
-    allTriangles.append({
+      'angles': angles,
+      'triangles': triangles})
+    materialStats.append({
       'x': x,
       'y': y,
       'z': z,
-      'triangles': getTriangles(name)})
-  f = open('allStats.json', 'w+')
-  f.write(json.dumps(allStats))
-  f.close()
-  f = open('triangleData.json', 'w+')
-  f.write(json.dumps(allTriangles))
-  f.close
+      'material': material})
+    printTimeStats.append({
+      'x': x,
+      'y': y,
+      'z': z,
+      'printTime': printTime })
+    surfaceAreaStats.append({
+      'x': x,
+      'y': y,
+      'z': z,
+      'surfaceArea': surfaceArea})
+    anglesStats.append({
+      'x': x,
+      'y': y,
+      'z': z,
+      'angles': angles})
+    trianglesStats.append({
+      'x': x,
+      'y': y,
+      'z': z,
+      'triangles': triangles})
+
+  with open('allStats.json', 'w+') as f:
+    f.write(json.dumps(allStats))
+  with open('materialStats.json', 'w+') as f:
+    f.write(json.dumps(materialStats))
+  with open('printTimeStats.json', 'w+') as f:
+    f.write(json.dumps(printTimeStats))
+  with open('surfaceAreaStats.json', 'w+') as f:
+    f.write(json.dumps(surfaceAreaStats))
+  with open('anglesStats.json', 'w+') as f:
+    f.write(json.dumps(anglesStats))
+  with open('trianglesStats.json', 'w+') as f:
+    f.write(json.dumps(trianglesStats))
 
 def filesDir(fname):
   return fname.split('.')[0] + "-files"
