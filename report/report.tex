@@ -21,6 +21,7 @@
 \usepackage{url}
 \usepackage{graphicx} % for EPS use the graphics package instead
 %\usepackage{bibspacing} % save vertical space in references
+\usepackage{subcaption}
 
 %\pagenumbering{arabic} % - remove for final camera-ready
 \pagenumbering{gobble}
@@ -91,7 +92,7 @@ Other differences between professionals and hobbyists are in the types and compl
 Several things arise in conversations about support material, including time to print, support material volume, difficulty or time to remove support material, and faces covered in support material.
 
 \subsection{Time to Print}
-The time it takes for a part to print on FDM-style machines increases monotonically (but not linearly) with the amount of material required in a print.  As mentioned, hobbyists prefer not leaving printing models unattended for extended periods of time.
+The time it takes for a part to print on FDM-style machines increases monotonically (but not linearly) with the amount of material required in a print.  The non-linear relationship is due to acceleration settings on most machines, which speed up long, straight lines.  As mentioned, hobbyists prefer not leaving printing models unattended for extended periods of time.
 
 \subsection{Support Material Volume}
 Support material from hobbyist-level printers cannot be recycled as yet.  Some support materials, for example PLA which is produced from corn, are biodegradable, however the most popular material--ABS--creates waste that does not degrade easily.  Support material is also not free, and costs a set amount per unit volume used in a print.  Hobbyists are in general sensitive to wasting money and creating waste, so the volume of support material printed is a concern for them.  Irrespective of the orientation of the model, the volume of material used for the model does not change, so this can be disregarded.
@@ -106,7 +107,7 @@ The surface area of a model contacted by support material is directly proportion
 The angle at which support contacts model affects support removal time.  Support which has a contact of 90 degrees is significantly easier to remove than support contacting at an oblique angle.
 
 \subsubsection{Affected Faces}
-Because the support material removal process can be rough, model makers may orient a model in order to keep faces with small details support-free to avoid damaging them.
+Because the support material removal process can be rough, model makers may orient a model in order to keep faces with small details support-free to avoid damaging them.  For example, the face structure of the model in Figure \ref{fig:face} would be made rough by support removal.
 
 \subsubsection{Connected Components}
 Support material adheres well to itself, and is easiest to pull off as larger chunks.  The more connected components there are created in support material for a model, the longer it will take to remove because leverage from one component can't be applied to another.
@@ -161,6 +162,25 @@ Being a novice printer user, she decides to fire up Support Support to help her 
 
 \valkyrie{Derrick, please put some story about how this user goes through the process of choosing things in our interface}
 
+\begin{figure}
+        \centering
+        \begin{subfigure}[b]{0.3\textwidth}
+                \includegraphics[width=2.75in]{images/wizzard-lotssupport}
+                \caption{Lots of support.  Wizzard rotated 20 degrees X, 20 degrees Y.}
+                \label{fig:lots}
+        \end{subfigure}
+        \begin{subfigure}[b]{0.3\textwidth}
+                \includegraphics[width=2.75in]{images/wizzard-somesupport}
+                \caption{Some support.  Wizzard rotated 60 degrees X, 0 degrees Y.}
+                \label{fig:some}
+        \end{subfigure}
+        \begin{subfigure}[b]{0.3\textwidth}
+                \includegraphics[width=2.75in]{images/wizzard-facesupport}
+                \caption{Support on face.  Wizzard rotated 80 degrees X, 120 degrees Y.}
+                \label{fig:face}
+        \end{subfigure}
+        \caption{Depending upon his rotation in X and Y, our wizzard can have lots of support, some support, or support on his face.  Any of these can be considered problems.}\label{fig:rotations}
+\end{figure}
 \section{Implementation}
 The visualization we implemented is broken down into two parts: data generation and visualization.  Data generation is done offline and ahead of time.  The visualization is visible and available for interaction in-browser.
 
@@ -188,7 +208,7 @@ With the rotations selected, we generate one-time scripts for the programmatic 3
 \subsubsection{Volume and Time}
 The support material volume and time to print are both calculated using Skeinforge, which is a pure python slicing program that is no longer actively supported.  We selected it for this portion of the data generation because, though it runs slower than new slicing software, the code was much better commented and easy to work with.
 
-Support material volume is calculated by first slicing the model with no support.  This value, the base material use, is stored.  We then slice the model in all generated orientations and calculate the volume of the total print.  We subtract our stored base material use from the volume of each orientation, giving us the support material use in each orientation.  Note that the volume of material used for the model does not change in different orientations.
+Support material volume is calculated by first slicing the model with no support.  This value, the base material use, is stored.  We then slice the model in all generated orientations and calculate the volume of the total print.  We subtract our stored base material use from the volume of each orientation, giving us the support material use in each orientation.  Note that the volume of material used for the model does not change in different orientations.  Some examples of slicings generated by Skeinforge are shown in Figures \ref{fig:lots} and \ref{fig:some}.
 
 Time to print is calculated using heuristics about the printer's speed moving in XY and Z.  By parsing the generated machine code for the printer, we can sum the execution time over all commands sent to the printer.  This estimated time can be slightly inaccurate; many 3D printers now have hardware acceleration which allows them to print long lines more quickly per distance than short lines.  We do not account for this in our data gathering.
 
