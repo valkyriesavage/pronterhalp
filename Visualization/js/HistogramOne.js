@@ -88,6 +88,12 @@ HistogramOne.prototype.addToBody = function() {
     .append("g")
       .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
+  var padding = 80;
+  svg.append("text")
+    .attr("text-anchor", "middle")  // this makes it easy to centre the text as the transform is applied to the anchor
+    .attr("transform", "translate("+ (width/2) +","+(height+(padding/3))+")")  // centre below axis
+    .text("testlabel");
+
   var bar = svg.selectAll(".bar")
       .data(data)
     .enter().append("g")

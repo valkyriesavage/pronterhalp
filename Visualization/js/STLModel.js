@@ -96,7 +96,7 @@ STLModel.prototype.addToBody = function() {
   	var maxY = -1000000;
   	var maxZ = -1000000;
 
-        var supportedTrianglesBuConfiguration;
+        var supportedTrianglesByConfiguration;
         // this is harsh.  but we gotta do it
         d3.json("data/wizzardSupported.json", function(error, json) {
           if (error) return console.warn(error);
@@ -296,7 +296,7 @@ STLModel.prototype.addToBody = function() {
 	}
 
 	// xhr.open( "GET", 'stls/Octocat-v1.stl', true );
-	xhr.open( "GET", 'stls/wizzard.stl', true );
+	xhr.open( "GET", stlFileName, true );
 	// xhr.responseType = "arraybuffer";
 	xhr.setRequestHeader("Accept","text/plain");
 	xhr.setRequestHeader("Content-Type","text/plain");
