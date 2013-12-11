@@ -96,7 +96,7 @@ STLModel.prototype.addToBody = function() {
   	var maxY = -1000000;
   	var maxZ = -1000000;
 
-        var supportedTrianglesBuConfiguration;
+        var supportedTrianglesByConfiguration;
         // this is harsh.  but we gotta do it
         d3.json("data/wizzardSupported.json", function(error, json) {
           if (error) return console.warn(error);
@@ -264,8 +264,9 @@ STLModel.prototype.addToBody = function() {
 
 	scene = new THREE.Scene();
 
-	camera = new THREE.PerspectiveCamera( 75, this.width / this.height, 1, 1000 );
-	camera.position.z = 75;
+	camera = new THREE.PerspectiveCamera( 45, this.width / this.height, 1, 1000 );
+	// camera = new THREE.PerspectiveCamera(75, this.width /this.height, 10000); //view_angle, aspect = width/height, near, far
+	camera.position.z = 200;
 	camera.position.y = 0;
 	camera.position.x = 0;
 	scene.add( camera );
@@ -296,7 +297,7 @@ STLModel.prototype.addToBody = function() {
 	}
 
 	// xhr.open( "GET", 'stls/Octocat-v1.stl', true );
-	xhr.open( "GET", 'stls/wizzard.stl', true );
+	xhr.open( "GET", stlFileName, true );
 	// xhr.responseType = "arraybuffer";
 	xhr.setRequestHeader("Accept","text/plain");
 	xhr.setRequestHeader("Content-Type","text/plain");
