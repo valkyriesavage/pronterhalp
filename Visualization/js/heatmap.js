@@ -8,6 +8,16 @@ function HeatMap(width, height, dataJson, orientationCallback, dataField) {
   this.json = dataJson;
   this.callback = orientationCallback; // call back to call when updating orientation
   this.dataField = dataField;
+  if (this.dataField === "printTime") {
+    this.lightColor = "#EBD6FF";
+    this.color = "#FF3300";
+  } else if (this.dataField === "material") {
+    this.lightColor = "#C2F0C2";
+    this.color = "#33CC33";
+  } else if (this.dataField === "surfaceArea") {
+    this.lightColor = "#E0C2FF";
+    this.color = "#9933FF";
+  }
 }
 
 HeatMap.prototype.pixelsToOrientation = function(pixelX, pixelY, width, height) {
@@ -76,7 +86,7 @@ HeatMap.prototype.addToBody = function() {
   
   var color = d3.scale.linear()
       .domain([minVal, maxVal])
-      .range(['#0f0', '#f00']);
+      .range([this.lightColor, this.color]);
 
   var xAxis = d3.svg.axis()
       .scale(x)

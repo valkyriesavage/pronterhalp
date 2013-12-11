@@ -15,6 +15,16 @@ function HistogramOne(width, height, dataJson, dataField) {
   for (var r= 0; r < dx; r++) {
     this.matrix[r] = new Array(dy);
   }
+  if (this.dataField === "printTime") {
+    this.color = "#FF3300";
+    this.highlightColor = "#801A00";
+  } else if (this.dataField === "material") {
+    this.color = "#33CC33";
+    this.highlightColor = "#006600";
+  } else if (this.dataField === "surfaceArea") {
+    this.color = "#9933FF";
+    this.highlightColor = "#3D1466";
+  }
 }
 
 HistogramOne.prototype.addToBody = function() {  
@@ -101,6 +111,8 @@ HistogramOne.prototype.addToBody = function() {
       .attr("class", "x axis")
       .attr("transform", "translate(0," + height + ")")
       .call(xAxis);
+
+  this.rects.style("fill", this.color);
 }
 
 /**
@@ -123,9 +135,9 @@ HistogramOne.prototype.highlightBar = function(x, y) {
     }
   } 
   // clear the previous highlights
-  this.rects.style("fill", "steelblue");
+  this.rects.style("fill", this.color);
   // highlight the bar
   console.log("Left: " + left + " Right: " + right);
-  this.rects.filter(function(d) { return d.x <= v && v < d.x + d.dx}).style("fill", "green");
+  this.rects.filter(function(d) { return d.x <= v && v < d.x + d.dx}).style("fill", this.highlightColor);
   $("#h-"+this.dataField+"-text").text(this.dataField + ": " + v);
 }
