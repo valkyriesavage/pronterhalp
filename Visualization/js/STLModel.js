@@ -267,7 +267,7 @@ STLModel.prototype.addToBody = function() {
 
 	camera = new THREE.PerspectiveCamera( 45, this.width / this.height, 1, 1000 );
 	// camera = new THREE.PerspectiveCamera(75, this.width /this.height, 10000); //view_angle, aspect = width/height, near, far
-	camera.position.z = 200;
+	camera.position.z = 100;
 	camera.position.y = 0;
 	camera.position.x = 0;
 	scene.add( camera );
