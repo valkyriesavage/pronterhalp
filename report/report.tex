@@ -70,6 +70,14 @@ breaklinks=true,
 
 \maketitle
 
+
+\begin{figure*}
+\centering
+\includegraphics[width=7in]{images/printed.jpg}
+\caption{A 3D print with a balance of material use, print time, and surface area covered by support.  The rough structures at the bottom are the support material, which can be difficult to remove.}
+\label{fig:printed}
+\end{figure*}
+
 \begin{abstract}
 3D printers proliferate, yet every step leading from idea to print is too complicated for all but dedicated users to perform.  Those creating 3D printable objects have many concerns related to how the printing will go. While very fancy printers have multiple material capabilities and easy-dissolve supports, hobbyist-level machines are typically limited to a single material used for both the model and the model supports. Thus, one common user concern is how difficult support removal will be; this is based on the angle of attachment between model and support (e.g. removing support oblique to the model is more difficult), the accessibility of the area of support material (e.g. support is easy to remove from a flat, exposed surface and more difficult to remove from a curved surface partially obscured by other faces), and the amount of support (e.g. more support takes longer). Another common concern is the total printing time; users don't necessarily want to wait for long prints. A third issue is material waste; excess support material used in a print must be thrown away and cannot be used again.  Finally, users may have areas of high detail in which they do not want to have support in their final prints, as support removal can break or damage finely-details surfaces.  Unfortunately, these four issues are often at odds, and all depend upon the model's orientation in the bed.  We have designed a tool which automatically generates several random model orientations and calculates statistics for each of these four metrics.  We present these calculations to the user in an interactive web-based tool.
 \end{abstract}
@@ -80,12 +88,33 @@ breaklinks=true,
 
 \terms{Design, Human Factors}
 
+\begin{figure}
+        \centering
+        \begin{subfigure}[b]{0.3\textwidth}
+                \includegraphics[width=2in]{images/uprint.png}
+                \caption{This pig was made on an industrial printer.  Note fine lines and dissolvable support (black).}
+                \label{fig:uprint}
+        \end{subfigure}
+        \begin{subfigure}[b]{0.3\textwidth}
+                \includegraphics[width=2in]{images/printbefore.png}
+                \caption{This Chinese dragon was made on a hobbyist 3D printer.  The rough material is support.}
+                \label{fig:makerbot}
+        \end{subfigure}
+        \begin{subfigure}[b]{0.3\textwidth}
+                \includegraphics[width=2in]{images/printafter.png}
+                \caption{This is the dragon print after support was removed.  The head has broken off.}
+                \label{fig:makerbotafter}
+        \end{subfigure}
+        \caption{Hobbyist and industrial 3D printers have very different abilities.}\label{fig:printers}
+\end{figure}
+
+
 \section{Introduction}
 3D printing has become an entrenched part of the prototyping process for professional industrial designers, and thanks to patent expiry it has begun to proliferate as a practice among hobbyists.  However, there are many important differences in the ways that printers are used between these two groups.
 
-The most important practical differences are related to machine specifications.  FDM-style 3D printers (popular among both hobbyists and professionals) work by laying down layers at a time of a typically plastic-like material, melting it out in strands and fusing each layer to the previous one.  This only works if there is something in the layer underneath: in 3D printing culture, this is known as the 45 degree rule.  Overhang angles in an FDM part cannot be greater than 45 degrees without support material underneath.  Here is the difference between hobbyist and professional machines: professional machines offer \emph{two different} materials, one for the model and one for support.  In this design, the support material is created to dissolve or melt, so that the final model part is simple to extract.  In contrast, hobbyist-level printers are limited to just \emph{one}.  This means that extracting the model from the support material can be a time-consuming process, which is potentially damaging to the model itself.
+The most important practical differences are related to machine specifications.  FDM-style 3D printers (popular among both hobbyists and professionals) work by laying down layers at a time of a typically plastic-like material, melting it out in strands and fusing each layer to the previous one.  This only works if there is something in the layer underneath: in 3D printing culture, this is known as the 45 degree rule.  Overhang angles in an FDM part cannot be greater than 45 degrees without support material underneath.  Here is the difference between hobbyist and professional machines: professional machines offer \emph{two different} materials, one for the model and one for support (see Figure \ref{fig:uprint}).  In this design, the support material is created to dissolve or melt, so that the final model part is simple to extract.  In contrast, hobbyist-level printers are limited to just \emph{one}.  This means that extracting the model from the support material can be a time-consuming process, which is potentially damaging to the model itself (see Figures \ref{fig:makerbot} and \ref{fig:makerbotafter}).
 
-Another crucial difference between the machines used by hobbyists and professionals is their \emph{reliability}.  A professional can typically start a print and walk away, allowing it to run its course.  In contrast, hobbyist machines must be carefully observed until at least two layers have been laid down, to ensure that the print sticks to the bed correctly and that the calibration of the machine is correct.  As such, time invested in a print on a hobbyist machine is much more precious, and many hobbyist 3D printers are loath to run extended unsupervised print jobs.
+Another crucial difference between the machines used by hobbyists and professionals is their \emph{reliability}.  A professional can typically start a print and walk away, allowing it to run its course.  In contrast, hobbyist machines must be carefully observed until at least two layers have been laid down, to ensure that the print sticks to the bed correctly and that the calibration of the machine is correct.  Even once these layers have been laid, problems such as a tangled material feed or self-destructive vibration can cause a print to fail.  As such, time invested in a print on a hobbyist machine is much more precious, and many hobbyist 3D printers are loath to run extended unsupervised print jobs.
 
 Other differences between professionals and hobbyists are in the types and complexities of models they design, the tools they use for design, and in their uses of the final artifacts.  However, we selected to focus on the support material for our visualization topic.
 
@@ -277,6 +306,15 @@ Our initial informal user tests with regular users of 3D printers have been very
 We got excellent feature suggestions from them, including the ability to "brush" some faces on the STL where they would prefer not to have support material, as well as providing a series of interface buttons to select the minimum value for each of the measurements we provide (i.e., one button for "minimize print time", one for "minimize surface area", one for "minimize average angle", etc.).  We agree that this would be a valuable option; indeed it would be good to provide users the ability to rank the features that are most important to them and provide a sorted list of possible orientations based on their constraints.
 
 Unfortunately, due to the extreme time requirement for data generation, we showed all our users the wizzard model.  Thus, users also expressed that they would like to see their own models represented in the interface.  We believe this can be accomplished through a system similar to Shapeways, where a user uploads a model and receives an email and link when automatic checks and data generation are complete.
+
+We the authors also have found our visualization to be useful.  We considered our wizzard example.  While the optimal orientation that we generated without looking at statistics is shown in Figure \ref{fig:printed}, the optimal orientation found using our visualization is shown in Figure \ref{fig:printedOptimal}.  We notice that our own orientations are semantically meaningful (in the case of Figure \ref{fig:printed}, the wizzard is on his back).  The data, however, are not tied to semantics, and found a significantly better orientation where the wizzard is at a strange angle and resting on his face and arm.
+
+\begin{figure}
+\centering
+\includegraphics[width=3.5in]{images/printedOptimal.jpg}
+\caption{This is the optimal print determined by our interface.  It minimizes material use and print time, and has a very low surface area of support material contact.}
+\label{fig:printedOptimal}
+\end{figure}
 
 \section{Limitations and Future Work}
 There are several considerations of support material and its removal that we do not currently measure, in particular connected components, curvature, and accessibility.  We believe that these measurements are, while not trivial or necessarily computationally efficient, straightforward to determine given sufficient programming time.  Accessibility of support material could be determined with raycasting algorithms.  Curvature and connected components could be tracked by iterating over neighborhoods of each face and comparing measurements.  The time-constrained nature of this project has forced us to focus on the interface and what we believe are the most crucial data.  Additionally, integrating many measurements into an abstract "support removal time" metric would be instructive to novice users who may not understand the relationship between support material angle and support removal time.
