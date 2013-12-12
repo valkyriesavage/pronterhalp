@@ -2,7 +2,6 @@
 *.DS_Store
 *.swp
 *.scad
-*.stl
 *-files/*
 *.aux
 *.bbl
@@ -12,3 +11,4 @@
 *.synctex.gz
 *.fdb_latexmk
 *.pdf
+*.stl

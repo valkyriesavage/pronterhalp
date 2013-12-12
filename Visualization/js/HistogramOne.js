@@ -88,11 +88,20 @@ HistogramOne.prototype.addToBody = function() {
       .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
   var padding = 80;
-  
+
+  var unitsLabel = "";
+  if (this.dataField === "printTime") {
+    unitsLabel = "(in minutes)";
+  } else if (this.dataField === "material") {
+    unitsLabel = "(cm^3)";
+  } else if (this.dataField === "surfaceArea") {
+    unitsLabel = "(*10^9 mm^3)";
+  }
+
   svg.append("text")
     .attr("text-anchor", "middle")  // this makes it easy to centre the text as the transform is applied to the anchor
     .attr("transform", "translate("+ (width/2) +","+(height+(padding/3))+")")  // centre below axis
-    .text("");
+    .text(unitsLabel);
 
   var bar = svg.selectAll(".bar")
       .data(data)
