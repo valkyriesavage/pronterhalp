@@ -103,7 +103,7 @@ HeatMap.prototype.addToBody = function() {
       .style("width", width + "px")
       .style("height", height + "px")
       .call(drawImage)
-      .on("mousemove", function(){
+      .on("click", function(){
     	// console.log("Hello");
     	// console.log(this);
     	console.log("Absolute Position of Canvas Element: " + this.offsetLeft + ", " + this.offsetTop)
