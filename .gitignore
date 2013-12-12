@@ -2,7 +2,7 @@
 *.DS_Store
 *.swp
 *.scad
-*-files/*
+dataGen/*-files/*
 *.aux
 *.bbl
 *.blg
