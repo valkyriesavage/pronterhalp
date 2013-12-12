@@ -95,7 +95,7 @@ HistogramOne.prototype.addToBody = function() {
   } else if (this.dataField === "material") {
     unitsLabel = "(cm^3)";
   } else if (this.dataField === "surfaceArea") {
-    unitsLabel = "(*10^9 mm^3)";
+    unitsLabel = "(mm^2)";
   }
 
   svg.append("text")
