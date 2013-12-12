@@ -287,8 +287,8 @@ STLModel.prototype.addToBody = function() {
 	            // console.log(rep);
 	            // parseStlBinary(rep);
 	            parseStl(xhr.responseText);
-	            mesh.rotation.x = 5;
-	            mesh.rotation.z = .25;
+	            mesh.rotation.x = 0;
+	            mesh.rotation.z = 0;
 	            console.log('done parsing');
 	        }
 	    }
@@ -339,7 +339,7 @@ STLModel.prototype.addToBody = function() {
 	    // mesh.rotation.z += 0.02;
 	    mesh.rotation.y = (yRotation/ 180) * 3.14;
 	    mesh.rotation.x = (xRotation/ 180) * 3.14;
-
+	    // mesh.translateZ = -0.5;
 		renderer.render( scene, camera );
 		}
 	}

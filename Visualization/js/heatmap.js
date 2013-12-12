@@ -102,6 +102,7 @@ HeatMap.prototype.addToBody = function() {
       .attr("height", dy)
       .style("width", width + "px")
       .style("height", height + "px")
+      .style("padding-bottom", "12px")
       .call(drawImage)
       .on("click", function(){
     	// console.log("Hello");
