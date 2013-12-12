@@ -1,3 +1,7 @@
-#h-printTime, #h-material, #h-surfaceArea {
+#h-angles, #h-printTime, #h-material, #h-surfaceArea {
 	text-align: center;
+}
+
+svg text {
+  fill:white;
 }

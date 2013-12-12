@@ -6,6 +6,7 @@
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<style>
 		</style>
+    <link href='http://fonts.googleapis.com/css?family=Alegreya+Sans+SC' rel='stylesheet' type='text/css'>
 		<link rel="stylesheet" type="text/css" href="css/NewHistogram.css">
             <link rel="stylesheet" type="text/css" href="css/3DModel.css">
             <link rel="stylesheet" type="text/css" href="css/heatmap.css">
@@ -16,6 +17,7 @@
 		<script src="js/d3.v3.min.js" charset="utf-8"></script>
 		<script src="js/detector.js"></script>
 		<script src="js/HistogramOne.js"></script>
+    <script src="js/AnglesHistogramOne.js"></script>
 		<script src="js/heatmap.js"></script>
 		<script src="js/OrbitControls.js"></script>
             <script src="js/STLModel.js"></script>
@@ -25,24 +27,27 @@
           <div id="stats" style="text-align: center; font-size: large">Statistics</div>
 	        <div id="heatmaps" style="width:25%; float:left"></div>
           <div id="histograms" style="width:25%; float:left"></div>
-          <div id="model" style="width:50%; float:left; display:none">
+          <div id="anglesHistogram" style="width:25%; float:left;"></div>
+          <div id="model" style="width:35%; float:left; display:none">
             <span>stls/wizzard.stl</span>
           </div>
 		<script>
             var stlFileName = 'stls/wizzard.stl';
             var xRotation = 0, yRotation = 0;
-            d3.json("data/surfaceAreaStats.json", function(error, surfaceAreaJson) {
-              d3.json("data/materialStats.json", function(error, materialJson) {
-                d3.json("data/printTimeStats.json", function(error, printTimeJson) {
-                      if (error) {
-                        return console.warn(error);
-                      }
-                      handleData(materialJson, printTimeJson, surfaceAreaJson);
+            d3.json("data/anglesStats.json", function(error, anglesJson) {
+              d3.json("data/surfaceAreaStats.json", function(error, surfaceAreaJson) {
+                d3.json("data/materialStats.json", function(error, materialJson) {
+                  d3.json("data/printTimeStats.json", function(error, printTimeJson) {
+                        if (error) {
+                          return console.warn(error);
+                        }
+                        handleData(materialJson, printTimeJson, surfaceAreaJson, anglesJson);
+                  });
                 });
               });
             });
 
-            function handleData(materialJson, printTimeJson, surfaceAreaJson) {
+            function handleData(materialJson, printTimeJson, surfaceAreaJson, anglesJson) {
 		
         /*
 	       * Histogram Allocation
@@ -62,6 +67,13 @@
             // Histogram #3
             var h3 = new HistogramOne(width, height, surfaceAreaJson, "surfaceArea");
             histograms[2] = h3;
+
+            /**
+             * Angles Histogram Create
+             */ 
+            width = window.innerWidth/4;
+            height = window.innerHeight/4;
+            var ah = new AnglesHistogramOne(width, height, anglesJson, "angles");
 
             /*
              * When called with the new orientation:
@@ -92,6 +104,8 @@
                   for (var i = 0; i < histograms.length; i++) {
                     histograms[i].highlightBar(xRotation, yRotation);
                   }
+                  // update the angles
+                  ah.reAddToBody((xRotation -180), (yRotation -180));
                   // rotate the STL
                   // should already auto rotate by reading the actual
 
@@ -129,15 +143,10 @@
             h2.addToBody();
             h3.addToBody();
 
-
             /**
-             * Angles HeatMap
+             * Angles Histogram Add to Body
              */ 
-            // width = window.innerWidth/4;
-            // height = window.innerHeight/4;
-            // var ah = new HistogramOne(width, height, anglesJson, "angles");
-
-            // ah.addToBody();
+            ah.addToBody(0,0);
 
             /**
              * Unhide STL Model

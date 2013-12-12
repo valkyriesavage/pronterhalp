@@ -57,7 +57,7 @@ HeatMap.prototype.addToBody = function() {
   }
   var x, y;
   var minVal = 10000, maxVal = -10000;
-  console.log("JSON LENGTH: " + json.length);
+  // console.log("JSON LENGTH: " + json.length);
   for (i = 0; i < json.length; i++) {
     x = Math.round(parseFloat(json[i].x));
     y = Math.round(parseFloat(json[i].y));

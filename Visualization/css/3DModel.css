@@ -1,6 +1,8 @@
 body {
-    font-family: Monospace;
-    background-color: #ffffff;
+    font-family: 'Alegreya Sans SC', sans-serif;
+    background-color: #000000;
+    color: #ffffff;
     margin: 0px;
     overflow: hidden;
+    font: 10px 'Alegreya Sans SC';
 }

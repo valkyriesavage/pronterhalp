@@ -1,7 +1,3 @@
-body {
-  font: 10px sans-serif;
-}
-
 svg {
   padding: 2px;
   padding-left:7px
@@ -13,11 +9,11 @@ svg {
 }
 
 .bar text {
-  fill: #fff;
+  fill: white;
 }
 
 .axis path, .axis line {
   fill: none;
-  stroke: #000;
+  stroke: #fff;
   shape-rendering: crispEdges;
 }
