@@ -1,6 +1,10 @@
 #h-angles, #h-printTime, #h-material, #h-surfaceArea {
 	text-align: center;
 }
+span {
+	font: 16px 'Alegreya Sans SC';
+	color: #C0C0C0;
+}
 
 svg text {
   fill:white;

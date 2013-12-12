@@ -23,8 +23,8 @@
             <script src="js/STLModel.js"></script>
 	</head>
         <body>
-          <div id="header" style="text-align: center; font-size: 36px">Support Support</div>
-          <div id="stats" style="text-align: center; font-size: large">Statistics</div>
+          <div id="header" style="text-align: center; font-size: 36px; color:#B8860B">Support Support</div>
+          <div id="stats" style="text-align: center; font-size: 26px; color:#C0C0C0">Statistics</div>
 	        <div id="heatmaps" style="width:25%; float:left"></div>
           <div id="histograms" style="width:25%; float:left"></div>
           <div id="anglesHistogram" style="width:25%; float:left;"></div>
@@ -81,7 +81,7 @@
              * 2) Goes through all the heatmaps and marks the associated point
              * 3) Rotates the STL
              */
-            $("#stats").text("xRotation: " + xRotation + " yRotation:" + yRotation);
+            $("#stats").text("X: " + xRotation + "     Y:" + yRotation);
 		function updateOrientation(orientX, orientY, matrix, dataField) {
                   xRotation = orientX;
                   yRotation = orientY;
@@ -99,7 +99,7 @@
                   }
                   console.log("Updating the orientation of the STL with xRotation: " + orientX + " yRotation: " + orientY);
                   // Update the statistics bar 
-                  $("#stats").text("xRotation: " + (xRotation -180)+ " yRotation:" + (yRotation -180));
+                  $("#stats").text("X: " + (xRotation -180)+ "     Y:" + (yRotation -180));
                   // highlight bars
                   for (var i = 0; i < histograms.length; i++) {
                     histograms[i].highlightBar(xRotation, yRotation);
