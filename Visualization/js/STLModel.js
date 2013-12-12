@@ -182,7 +182,8 @@ STLModel.prototype.addToBody = function() {
 	            	// console.log("ADDING FACE");
 	            	var face = new THREE.Face3( vCount*3, vCount*3+1, vCount*3+2, new THREE.Vector3(normal[0], normal[1], normal[2]) );
 	            	// Valkyrie
-	            	face.color.setRGB( 0, 0, 0.8 * Math.random() + 0.2 );
+	            	face.color.setRGB( normal[0], normal[1], normal[2] );
+                        console.log(normal);
 	                geo.faces.push(face);
 
                         relevantTriangles = [];

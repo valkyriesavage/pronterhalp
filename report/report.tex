@@ -160,30 +160,57 @@ A novice printer user surfing a 3D printing community website finds a design tha
 
 Being a novice printer user, she decides to fire up Support Support to help her find the best way to print the Wizzard.  She runs the data generation script, and some time later comes back to her computer to look at the visualization of the data generated.
 
-\valkyrie{Derrick, please put some story about how this user goes through the process of choosing things in our interface}
-Through looking at the this visualization she can easily view three main aspects of fabrication: support material volume, print time, and surface area of support material contact. For each facet there is a heatmap and a histogram associated, where the x and y axis of the heatmap represent the angle rotation along the x and y axises respectively.
+Through looking at the visualization she can easily view three main aspects of fabrication: support material volume, print time, and surface area of support material contact. For each facet there is a heatmap and a histogram associated, where the x and y axis of the heatmap represent the angle rotation along the x and y axises respectively (see Figure \ref{fig:heatmap}).
 
-She can click on different portions of one of the heatmaps. For her in particular she is really into being green. Thus, she clicks on the lightest portion the material use heatmap. By doing so she highlights the bar in the histogram which corresponds to that material use value. For this example, the bar would be farthest to the left, since it would correspond to the least material use. Clicking the heatmap also reorients the wizzard icon (to the referenced new orientation). For the specific orientation, she additionally, can look at the angles histogram which maps out the different angles that the support material is at. She notices that this position corresponds to a lot of material with overall higher angles and thus more difficult support material. Despite her desire to green, she is not feeling particulary gung-ho about having to remove inconvenient support material today. Thus she selects on other light portions on the material use heatmap, and continues to further explore universe of 3D fabrication orientations.
+\begin{figure}
+\centering
+\includegraphics[width=3.25in]{images/heatmap.png}
+\caption{The generated heatmap and histogram for print time.  Red is a longer print time (in minutes), and white is a shorter print time.  The Wizzard is rotationally fairly symmetrical, so many rotations give similar results.  Also note that the heatmap wraps around, with the top and bottom edges and left and right edges matching up.}
+\label{fig:heatmap}
+\end{figure}
+
+She can click on different portions of the heatmaps.  Our user is very interested in environmental topics and the "green-ness" of her print, particularly its waste generation. Thus, she clicks on any of the white portions of the material use heatmap. Upon clicking a point on the heatmap, the wizzard is rotated into the corresponding orientation, and Support Support highlights the histogram bucket which holds that orientation's material use. For this example, the bar would be farthest to the left, since she clicked on a point of very little support material use.
+
+For the selected orientation, our user can also look at the support material angles histogram: this maps out the histogram of connecting angles where these support material contacts the model. She notices that this orientation's angle distribution is stilted towards higher angles.  She knows that support material contacting the model at a 90 degree angle is much more difficult to remove than support material contacting at a 10 degree angle. Therefore, despite her desire to green, she is not feeling particularly gung-ho about having to remove inconvenient support material today. Thus she selects on other light portions on the material use heatmap, and continues to further explore universe of orientations for her Wizzard print.
 
 \begin{figure}
         \centering
         \begin{subfigure}[b]{0.3\textwidth}
                 \includegraphics[width=2.75in]{images/wizzard-lotssupport}
-                \caption{Lots of support.  Wizzard rotated 20 degrees X, 20 degrees Y.}
+                \caption{In this orientation, the wizzard requires lots of support.  Wizzard rotated 20 degrees X, 20 degrees Y.}
                 \label{fig:lots}
         \end{subfigure}
         \begin{subfigure}[b]{0.3\textwidth}
                 \includegraphics[width=2.75in]{images/wizzard-somesupport}
-                \caption{Some support.  Wizzard rotated 60 degrees X, 0 degrees Y.}
+                \caption{Here, the wizzard requires some support.  Wizzard rotated 60 degrees X, 0 degrees Y.}
                 \label{fig:some}
         \end{subfigure}
         \begin{subfigure}[b]{0.3\textwidth}
                 \includegraphics[width=2.75in]{images/wizzard-facesupport}
-                \caption{Support on face.  Wizzard rotated 80 degrees X, 120 degrees Y.}
+                \caption{Laid this way, the wizzard has support on his face.  Wizzard rotated 80 degrees X, 120 degrees Y.}
                 \label{fig:face}
         \end{subfigure}
         \caption{Depending upon his rotation in X and Y, our wizzard can have lots of support, some support, or support on his face.  Any of these can be considered problems.}\label{fig:rotations}
 \end{figure}
+
+\section{Design Decisions}
+We wanted to consider the use case described above in our interface design.  See Figure \ref{fig:full} for our final interface.
+
+\begin{figure}
+\centering
+\includegraphics[width=3.25in]{images/fullInterface.png}
+\caption{Our final in-browser interface.  Heatmaps and histograms of statistics appear on the left, and the model in the currently-selected orientation appears on the right.  Print time appears in red, support material use in green, and surface area of model contacting support material appears in blue.  The model faces are colored by normal so the user can easily see the shape of the object.}
+\label{fig:full}
+\end{figure}
+
+The data we generated is of several types.  Our independent variables, X and Y rotation, are quantitative variables that we had to sample (as a continuous dataset would take infinite time to create).  We selected a step size of 20 degrees as we consider this to give a good balance of coverage and time usage.
+
+Our dependent variables--print time, material use, surface area of contact, and surface normals--are also all quantitative variables.  We elected to show a heatmap of how print time, material use, and surface area vary over the XY rotational orientation space.  We also decided to vary this heatmap from white to a specific color (which is different for each variable), with white being the lowest values.  In all cases, a whiter value is better for the user.
+
+We decided to show histograms of the full range of values we found alongside these heatmaps.  The heatmaps give a sense of spatial orientation and smooth variation to the user, while the histograms show her the distribution of values.  Additionally, we highlight the appropriate histogram bucket when the user selects a heatmap point: the smoothly varying color of the heatmaps does not allow the user to easily determine the exact \emph{value} of the dependent variable at the chosen location, nor its relative \emph{goodness} compared to all values sampled.  Displaying this value and highlighting the histogram bar allow the user to determine these facts.
+
+For the STL model we display, we highlight the faces based on their normals.  This technique is available for use in many professional 3D modeling tools, for example Solidworks and Blender, to convey the shapes of objects.
+
 \section{Implementation}
 The visualization we implemented is broken down into two parts: data generation and visualization.  Data generation is done offline and ahead of time.  The visualization is visible and available for interaction in-browser.
 
@@ -230,27 +257,36 @@ We sum over the areas of all supported triangles.  We are also interested in whi
 In its usual generation of supports, Cura calculates the angle of the support material's contact with the surface.  It uses this for the purpose of creating accurate machine code where the support material meets the model material's surface.  We simply log these angles as they are calculated and keep a running count of faces found at each orientation; we later take the average of these values.
 
 \subsection{Visualization}
-\valkyrie{Derrick, please write this section!}
 
 The Support Support visualization is built using three.js \footnote{http://threejs.org} and d3.js \footnote{http://d3js.org}.
 
 \subsubsection{STL Model}
-The STL models are rendered using three.js which is a wrapper on top of WebGL. Its takes the ascii STL file and parses it, rendering the STL file in the webview triangle by triangle. Instead of loading up a new STL file everytime the STL file is rotated, we instead rotate the ThreeJS generated model. 
+The STL models are rendered using three.js which is a wrapper on top of WebGL. Its takes the ascii STL file and parses it, rendering the STL file in the webview triangle by triangle. Instead of loading up a new STL file everytime the STL file is rotated, we instead rotate the ThreeJS generated model.  The faces of the STL model are colored by their normals, with the red channel being the X portion of the normal, the green channel being the Y portion, and the blue channel being the Z portion.  Normals are calculated using the vertices and their order.
+
+Our plan was to highlight faces that are contacted by support material in a given configuration.  Due to time constraints and unexpected treatment of faces by three.js, we were unable to implement this feature.  However, we are confident that it is possible and plan to implement it as part of our future work.
 
 \subsubsection{Heatmaps and Histograms}
-The heatmaps are generated utilizing canvas. Since our data samples the rectangular subspace of degrees at a step of 20 degrees, the heatmap is sparse, requiring us to do bilinear interpolation. We achieve this using the interpolation that d3.js provides.
+The heatmaps are generated utilizing canvas. Since our data samples the rectangular subspace of degrees at a step of 20 degrees, the heatmap is sparse, requiring us to do bilinear interpolation. We achieve this by interpolating first in X, then in Y to find an estimated measurement value for each pixel.  We map these into colors using d3.js's scale.
 
 The histograms are created using d3.js as well. We added brushing and linking such that clicking on different portions of the heatmap highlights its respective bar on the histogram.
 
 As for the color, we keep the color consistent between the histogram and the heatmap. Time to print is red, support material volume is blue, and total surface area covered is purple.
 
 \section{Evaluation}
-suggestions we got from people.
+Our initial informal user tests with regular users of 3D printers have been very positive.  They all expressed a desire to perform the optimizations supported by Support Support, in particular those users who have only been using the printers for a short time.
+
+We got excellent feature suggestions from them, including the ability to "brush" some faces on the STL where they would prefer not to have support material, as well as providing a series of interface buttons to select the minimum value for each of the measurements we provide (i.e., one button for "minimize print time", one for "minimize surface area", one for "minimize average angle", etc.).  We agree that this would be a valuable option; indeed it would be good to provide users the ability to rank the features that are most important to them and provide a sorted list of possible orientations based on their constraints.
+
+Unfortunately, due to the extreme time requirement for data generation, we showed all our users the wizzard model.  Thus, users also expressed that they would like to see their own models represented in the interface.  We believe this can be accomplished through a system similar to Shapeways, where a user uploads a model and receives an email and link when automatic checks and data generation are complete.
 
 \section{Limitations and Future Work}
-There are several considerations of support material and its removal that we do not currently measure, in particular connected components, curvature, and accessibility.  We believe that these measurements are, while not trivial or necessarily computationally efficient, straightforward to determine given sufficient programming time.  Accessibility of support material could be determined with raycasting algorithms.  Curvature and connected components could be tracked by iterating over neighborhoods of each face and comparing measurements.
+There are several considerations of support material and its removal that we do not currently measure, in particular connected components, curvature, and accessibility.  We believe that these measurements are, while not trivial or necessarily computationally efficient, straightforward to determine given sufficient programming time.  Accessibility of support material could be determined with raycasting algorithms.  Curvature and connected components could be tracked by iterating over neighborhoods of each face and comparing measurements.  The time-constrained nature of this project has forced us to focus on the interface and what we believe are the most crucial data.  Additionally, integrating many measurements into an abstract "support removal time" metric would be instructive to novice users who may not understand the relationship between support material angle and support removal time.
 
-Another feature that would be very beneficial in future work is brushing and linking with affected faces.  Ideally, a 3D molder would be able to paint faces that should be kept support-free in a print, and use these constraints to narrow the search space of orientations.  Without a reasonably sophisticated search index, we were unable to create this function in a way that functioned at interactive speeds.
+As our users stated, another feature that would be very beneficial in future work is brushing and linking with affected faces.  Ideally, a 3D molder would be able to paint faces that should be kept support-free in a print, and use these constraints to narrow the search space of orientations.  Without a sophisticated search index, we were unable to create this function in a way that functioned at interactive speeds.
+
+Our users also pointed out other features that we would like to include in future iterations of Support Support, including minimization buttons.
+
+We believe there is much additional work to be done, both on the visualization and data generation fronts, however Support Support is an initial foray into a previously unexplored space.
 
 \section{Discussion}
 Tools for sampling multi-dimensional spaces and visualizations in general have been employed to serve mainly digital needs.  As 3D printers become more ubiquitous and digital design takes to the physical realm, we anticipate that more visualizations will focus on helping novices navigate the complex optimization problems associated with the printing process.  Hopefully some of this is only a stopgap solution.  We anticipate that more multi-material printers will become more affordable to hobbyists, and thereby that the support question will be less difficult.  However, material waste is still a salient issue in even commercial 3D printers with dissolvable supports, as dissolved material is not recoverable.  Even with more sophisticated machines, the fused deposition modeling (FDM) process can still give rise to issues with differing resolution in XY and Z, and also can be subject to shearing at layer interfaces when forces are applied.  We believe that orientation tools to help users explore the tradeoffs for different orientations will evolve with printers, and Support Support is just the start.
@@ -258,7 +294,7 @@ Tools for sampling multi-dimensional spaces and visualizations in general have b
 \section{Conclusion}
 Support Support is a data generation pipeline and visualization designed to save inexperienced designers time in their search to balance material use, printing time, and post-print cleaning time.  We have designed with our own experiences in mind, and with the input of others with 3D printing experience.  There are innumerable features that could be added to a visualization such as this, and additionally it will become more useful as the preprocessing time approaches 0.  A model for creating a better sampling process, i.e. to optimize for one or more user-selected parameters, would obviously make Support Support even more usable in the future.
 
-We are excited to release Support Support into the wild with instructions for users to create their own deployments.  We expect that we will get more feedback on it through this process, and plan to continue developing it in our spare time as it serves many of our own needs.
+We are excited to release Support Support into the wild with instructions for users to create their own deployments, and possibly to provide a hosted solution to which users can submit their own models and later see data for them.  We expect that we will get more feedback on it through this process, and plan to continue developing it in our spare time as it serves many of our own needs.
 
 \section{Acknowledgements}
 This material is based upon work supported by the National Science Foundation under Grant No. DGE 1106400.  The authors would like to thank the kind users of the Ultimaker forums for their assistance with Cura and data generation.

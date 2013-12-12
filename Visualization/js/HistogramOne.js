@@ -92,7 +92,7 @@ HistogramOne.prototype.addToBody = function() {
   svg.append("text")
     .attr("text-anchor", "middle")  // this makes it easy to centre the text as the transform is applied to the anchor
     .attr("transform", "translate("+ (width/2) +","+(height+(padding/3))+")")  // centre below axis
-    .text("testlabel");
+    .text("");
 
   var bar = svg.selectAll(".bar")
       .data(data)
@@ -145,5 +145,5 @@ HistogramOne.prototype.highlightBar = function(x, y) {
   // highlight the bar
   console.log("Left: " + left + " Right: " + right);
   this.rects.filter(function(d) { return d.x <= v && v < d.x + d.dx}).style("fill", this.highlightColor);
-  $("#h-"+this.dataField+"-text").text(this.dataField + ": " + v);
+  $("#h-"+this.dataField+"-text").text(this.dataField + ": " + parseFloat(Math.round(v*100)/100).toFixed(3));
 }
