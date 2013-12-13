@@ -70,14 +70,6 @@ breaklinks=true,
 
 \maketitle
 
-
-\begin{figure*}
-\centering
-\includegraphics[width=7in]{images/printed.jpg}
-\caption{A 3D print with a balance of material use, print time, and surface area covered by support.  The rough structures at the bottom are the support material, which can be difficult to remove.}
-\label{fig:printed}
-\end{figure*}
-
 \begin{abstract}
 3D printers proliferate, yet every step leading from idea to print is too complicated for all but dedicated users to perform.  Those creating 3D printable objects have many concerns related to how the printing will go. While very fancy printers have multiple material capabilities and easy-dissolve supports, hobbyist-level machines are typically limited to a single material used for both the model and the model supports. Thus, one common user concern is how difficult support removal will be; this is based on the angle of attachment between model and support (e.g. removing support oblique to the model is more difficult), the accessibility of the area of support material (e.g. support is easy to remove from a flat, exposed surface and more difficult to remove from a curved surface partially obscured by other faces), and the amount of support (e.g. more support takes longer). Another common concern is the total printing time; users don't necessarily want to wait for long prints. A third issue is material waste; excess support material used in a print must be thrown away and cannot be used again.  Finally, users may have areas of high detail in which they do not want to have support in their final prints, as support removal can break or damage finely-details surfaces.  Unfortunately, these four issues are often at odds, and all depend upon the model's orientation in the bed.  We have designed a tool which automatically generates several random model orientations and calculates statistics for each of these four metrics.  We present these calculations to the user in an interactive web-based tool.
 \end{abstract}
@@ -108,6 +100,12 @@ breaklinks=true,
         \caption{Hobbyist and industrial 3D printers have very different abilities.}\label{fig:printers}
 \end{figure}
 
+\begin{figure*}
+\centering
+\includegraphics[width=7in]{images/printed.jpg}
+\caption{A 3D print with a balance of material use, print time, and surface area covered by support.  The rough structures at the bottom are the support material, which can be difficult to remove.}
+\label{fig:printed}
+\end{figure*}
 
 \section{Introduction}
 3D printing has become an entrenched part of the prototyping process for professional industrial designers, and thanks to patent expiry it has begun to proliferate as a practice among hobbyists.  However, there are many important differences in the ways that printers are used between these two groups.
